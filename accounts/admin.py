@@ -1,0 +1,158 @@
+"""
+Accounts Admin設定
+"""
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
+from django.utils.html import format_html
+from .models import UserProfile
+
+
+class UserProfileInline(admin.StackedInline):
+    """UserProfileのインライン編集"""
+    model = UserProfile
+    can_delete = False
+    verbose_name = 'ユーザープロフィール'
+    verbose_name_plural = 'ユーザープロフィール'
+
+    fieldsets = (
+        ('利用制限', {
+            'fields': ('monthly_limit', 'monthly_used', 'remaining_display')
+        }),
+        ('ステータス', {
+            'fields': ('is_deleted',)
+        }),
+        ('タイムスタンプ', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    readonly_fields = ('remaining_display', 'created_at', 'updated_at')
+
+    def remaining_display(self, obj):
+        """残り利用回数の表示"""
+        if obj.id:
+            remaining = obj.remaining
+            color = 'green' if remaining > 20 else 'orange' if remaining > 0 else 'red'
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">{} 回</span>',
+                color,
+                remaining
+            )
+        return '-'
+    remaining_display.short_description = '残り利用回数'
+
+
+class CustomUserAdmin(BaseUserAdmin):
+    """カスタムユーザー管理"""
+    inlines = (UserProfileInline,)
+
+    list_display = ('username', 'email', 'first_name', 'last_name',
+                   'is_staff', 'monthly_usage_display', 'date_joined')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
+
+    def monthly_usage_display(self, obj):
+        """月次利用状況の表示"""
+        try:
+            profile = obj.profile
+            used = profile.monthly_used
+            limit = profile.monthly_limit
+            percentage = (used / limit * 100) if limit > 0 else 0
+
+            if percentage >= 100:
+                color = 'red'
+            elif percentage >= 80:
+                color = 'orange'
+            else:
+                color = 'green'
+
+            return format_html(
+                '<span style="color: {};">{} / {} ({}%)</span>',
+                color,
+                used,
+                limit,
+                int(percentage)
+            )
+        except UserProfile.DoesNotExist:
+            return '-'
+    monthly_usage_display.short_description = '月次利用状況'
+    monthly_usage_display.admin_order_field = 'profile__monthly_used'
+
+
+# Userモデルを再登録
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    """ユーザープロフィール管理"""
+
+    list_display = ('user_username', 'monthly_limit', 'monthly_used',
+                   'remaining_display', 'is_deleted', 'created_at')
+    list_filter = ('is_deleted', 'created_at', 'monthly_limit')
+    search_fields = ('user__username', 'user__email')
+    readonly_fields = ('remaining_display', 'created_at', 'updated_at')
+
+    fieldsets = (
+        ('ユーザー情報', {
+            'fields': ('user',)
+        }),
+        ('利用制限', {
+            'fields': ('monthly_limit', 'monthly_used', 'remaining_display')
+        }),
+        ('ステータス', {
+            'fields': ('is_deleted',)
+        }),
+        ('タイムスタンプ', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    actions = ['reset_monthly_usage', 'set_deleted', 'set_active']
+
+    def user_username(self, obj):
+        """ユーザー名の表示"""
+        return obj.user.username
+    user_username.short_description = 'ユーザー名'
+    user_username.admin_order_field = 'user__username'
+
+    def remaining_display(self, obj):
+        """残り利用回数の表示"""
+        remaining = obj.remaining
+        color = 'green' if remaining > 20 else 'orange' if remaining > 0 else 'red'
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{} 回</span>',
+            color,
+            remaining
+        )
+    remaining_display.short_description = '残り利用回数'
+
+    @admin.action(description='選択したユーザーの月次利用回数をリセット')
+    def reset_monthly_usage(self, request, queryset):
+        """月次利用回数を一括リセット"""
+        updated = queryset.update(monthly_used=0)
+        self.message_user(
+            request,
+            f'{updated}件のユーザーの月次利用回数をリセットしました。'
+        )
+
+    @admin.action(description='選択したユーザーを削除済みにする')
+    def set_deleted(self, request, queryset):
+        """論理削除"""
+        updated = queryset.update(is_deleted=True)
+        self.message_user(
+            request,
+            f'{updated}件のユーザーを削除済みにしました。'
+        )
+
+    @admin.action(description='選択したユーザーを有効にする')
+    def set_active(self, request, queryset):
+        """有効化"""
+        updated = queryset.update(is_deleted=False)
+        self.message_user(
+            request,
+            f'{updated}件のユーザーを有効にしました。'
+        )

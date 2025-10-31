@@ -1,0 +1,146 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:14-alpine
+    container_name: image_conversion_db
+    environment:
+      POSTGRES_DB: image_conversion_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: image_conversion_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django Web Application
+  web:
+    build: .
+    container_name: image_conversion_web
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        while ! nc -z db 5432; do sleep 1; done &&
+        echo 'Database is ready!' &&
+        echo 'Running migrations...' &&
+        python manage.py migrate &&
+        echo 'Creating superuser if not exists...' &&
+        python manage.py shell -c \"
+        from django.contrib.auth import get_user_model;
+        User = get_user_model();
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+        \" || true &&
+        echo 'Starting development server...' &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-docker-dev-key
+      - DATABASE_NAME=image_conversion_db
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - ALLOWED_HOSTS=localhost,127.0.0.1,web
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/style-ai-generator-476813-0433912db925.json
+      - GOOGLE_CLOUD_PROJECT=style-ai-generator-476813
+      - GOOGLE_CLOUD_LOCATION=us-central1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Celery Worker
+  celery:
+    build: .
+    container_name: image_conversion_celery
+    command: >
+      sh -c "
+        echo 'Waiting for database and redis...' &&
+        while ! nc -z db 5432; do sleep 1; done &&
+        while ! nc -z redis 6379; do sleep 1; done &&
+        echo 'Starting Celery worker...' &&
+        celery -A config worker -l info
+      "
+    volumes:
+      - .:/app
+      - media_volume:/app/media
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-docker-dev-key
+      - DATABASE_NAME=image_conversion_db
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/style-ai-generator-476813-0433912db925.json
+      - GOOGLE_CLOUD_PROJECT=style-ai-generator-476813
+      - GOOGLE_CLOUD_LOCATION=us-central1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Celery Beat (定期タスク)
+  celery-beat:
+    build: .
+    container_name: image_conversion_celery_beat
+    command: >
+      sh -c "
+        echo 'Waiting for database and redis...' &&
+        while ! nc -z db 5432; do sleep 1; done &&
+        while ! nc -z redis 6379; do sleep 1; done &&
+        echo 'Starting Celery beat...' &&
+        celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      "
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-docker-dev-key
+      - DATABASE_NAME=image_conversion_db
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/style-ai-generator-476813-0433912db925.json
+      - GOOGLE_CLOUD_PROJECT=style-ai-generator-476813
+      - GOOGLE_CLOUD_LOCATION=us-central1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

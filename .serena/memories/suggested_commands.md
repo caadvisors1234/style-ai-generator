@@ -1,0 +1,11 @@
+# よく使うコマンド
+- 開発サーバー (ローカル): `python manage.py runserver`
+- 初期化: `python manage.py migrate` / `python manage.py createsuperuser`
+- フィクスチャ読込: `python manage.py loaddata images/fixtures/prompt_presets.json`
+- Celery ワーカー: `celery -A config worker -l info`
+- Celery Beat: `celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler`
+- WebSocket/Channels 起動は ASGI ルート (`python manage.py runserver` で可)
+- Docker 立ち上げ: `docker-compose up --build`
+- テスト一式: `python manage.py test`
+- Gemini 接続テスト: `python test_gemini_connection.py`
+- 画像変換スモークテスト: `python test_image_conversion.py`
