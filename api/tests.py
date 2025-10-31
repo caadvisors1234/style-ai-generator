@@ -148,7 +148,7 @@ class UsageAPITestCase(TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_usage_history_returns_monthly_stats(self):
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         profile = self.user.profile
         profile.monthly_limit = 150
         profile.save()

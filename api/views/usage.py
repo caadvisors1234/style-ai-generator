@@ -56,7 +56,7 @@ def usage_summary(request):
         })
 
     profile = request.user.profile
-    now = timezone.now()
+    now = timezone.localtime(timezone.now())
     next_reset = _first_day_next_month(now)
 
     remaining = profile.remaining
@@ -111,7 +111,7 @@ def usage_history(request):
             }
         })
 
-    now = timezone.now()
+    now = timezone.localtime(timezone.now())
     current_first = _first_day(now)
     start_boundary = _subtract_months(current_first, months - 1)
 

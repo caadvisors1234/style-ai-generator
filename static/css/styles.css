@@ -33,3 +33,32 @@
 .toast-container .toast {
     min-width: 240px;
 }
+
+@media (max-width: 767.98px) {
+    .drop-zone {
+        padding: 1.5rem 0.75rem;
+    }
+
+    .uploaded-thumb,
+    .gallery-thumb {
+        height: 160px;
+    }
+
+    #usage-summary {
+        min-width: 0;
+        text-align: center;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .uploaded-thumb,
+    .gallery-thumb {
+        height: 140px;
+    }
+
+    .toast-container {
+        left: 0;
+        right: 0;
+        padding: 1rem;
+    }
+}

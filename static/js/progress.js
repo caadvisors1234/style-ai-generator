@@ -26,14 +26,15 @@
       const data = await APIClient.get(`/api/v1/convert/${conversionId}/status/`);
       const conversion = data.conversion;
 
-      let progress = 30;
-      if (conversion.status === 'pending') {
-        progress = 10;
-      } else if (conversion.status === 'processing') {
-        progress = 60;
-      } else if (conversion.status === 'completed') {
-        progress = 100;
-      } else if (conversion.status === 'failed') {
+      const total = conversion.generation_count || 0;
+      const current = conversion.current_count || 0;
+
+      let progress = 10;
+      if (total > 0) {
+        const ratio = Math.min(99, Math.round((current / total) * 100));
+        progress = Math.max(progress, ratio);
+      }
+      if (conversion.status === 'completed' || conversion.status === 'failed') {
         progress = 100;
       }
 
@@ -41,7 +42,9 @@
 
       if (counterEl) {
         if (conversion.status === 'completed' && data.images) {
-          counterEl.textContent = `${data.images.length} / ${data.images.length} 枚`;
+          counterEl.textContent = `${data.images.length} / ${total} 枚`;
+        } else if (total > 0 && conversion.status === 'processing') {
+          counterEl.textContent = `${current} / ${total} 枚`;
         } else {
           counterEl.textContent = conversion.status === 'processing' ? '処理中...' : '';
         }

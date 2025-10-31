@@ -226,6 +226,8 @@ def convert_status(request, conversion_id):
                 'message': '変換データが見つかりません'
             }, status=404)
 
+        current_generated = conversion.generated_images.filter(is_deleted=False).count()
+
         # 基本情報
         response_data = {
             'status': 'success',
@@ -233,7 +235,9 @@ def convert_status(request, conversion_id):
                 'id': conversion.id,
                 'status': conversion.status,
                 'created_at': conversion.created_at.isoformat(),
-                'updated_at': conversion.updated_at.isoformat()
+                'updated_at': conversion.updated_at.isoformat(),
+                'generation_count': conversion.generation_count,
+                'current_count': current_generated,
             }
         }
 
