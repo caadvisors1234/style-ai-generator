@@ -3,7 +3,7 @@ API URLルーティング
 """
 
 from django.urls import path
-from .views import auth, convert, prompts, upload, gallery
+from .views import auth, convert, prompts, upload, gallery, usage
 
 
 app_name = 'api'
@@ -38,4 +38,8 @@ urlpatterns = [
     path('v1/gallery/images/<int:image_id>/delete/', gallery.image_delete, name='image_delete'),
     path('v1/gallery/images/<int:image_id>/download/', gallery.image_download, name='image_download'),
     path('v1/gallery/images/<int:image_id>/brightness/', gallery.image_brightness, name='image_brightness'),
+
+    # 利用状況API
+    path('v1/usage/', usage.usage_summary, name='usage_summary'),
+    path('v1/usage/history/', usage.usage_history, name='usage_history'),
 ]

@@ -6,12 +6,11 @@
 
 import logging
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import JsonResponse
-from django.db import transaction
 import json
+from api.decorators import login_required_api
 
 
 logger = logging.getLogger(__name__)
@@ -111,7 +110,7 @@ def login_view(request):
 
 
 @require_http_methods(["POST"])
-@login_required
+@login_required_api
 def logout_view(request):
     """
     ログアウトAPI
@@ -144,7 +143,7 @@ def logout_view(request):
 
 
 @require_http_methods(["GET"])
-@login_required
+@login_required_api
 def me_view(request):
     """
     セッション確認API

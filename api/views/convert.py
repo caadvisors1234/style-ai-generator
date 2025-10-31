@@ -7,12 +7,11 @@
 import logging
 import json
 import os
-from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
-from django.core.files.storage import default_storage
 from django.conf import settings
 from django.db import transaction
+from api.decorators import login_required_api
 
 from images.models import ImageConversion, GeneratedImage
 from images.tasks import process_image_conversion
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @require_http_methods(["POST"])
-@login_required
+@login_required_api
 def convert_start(request):
     """
     画像変換開始API
@@ -163,7 +162,7 @@ def convert_start(request):
 
 
 @require_http_methods(["GET"])
-@login_required
+@login_required_api
 def convert_status(request, conversion_id):
     """
     変換進捗確認API
@@ -271,7 +270,7 @@ def convert_status(request, conversion_id):
 
 
 @require_http_methods(["POST"])
-@login_required
+@login_required_api
 def convert_cancel(request, conversion_id):
     """
     変換キャンセルAPI

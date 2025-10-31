@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}ギャラリー - Style AI Generator{% endblock %}
+
+{% block content %}
+<section class="mb-4">
+    <h2 class="h4 mb-3">生成画像ギャラリー</h2>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label for="gallery-search" class="form-label">検索</label>
+            <input type="search" class="form-control" id="gallery-search" placeholder="プロンプトで検索">
+        </div>
+        <div class="col-md-3">
+            <label for="gallery-sort" class="form-label">並び替え</label>
+            <select id="gallery-sort" class="form-select">
+                <option value="created_at_desc">新しい順</option>
+                <option value="created_at_asc">古い順</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="gallery-per-page" class="form-label">表示件数</label>
+            <select id="gallery-per-page" class="form-select">
+                <option value="12">12件</option>
+                <option value="24">24件</option>
+                <option value="36">36件</option>
+            </select>
+        </div>
+        <div class="col-md-3 text-md-end">
+            <a class="btn btn-outline-primary mt-3 mt-md-0" href="{% url 'frontend:main' %}">アップロードへ戻る</a>
+        </div>
+    </div>
+</section>
+
+<section>
+    <div id="gallery-empty" class="alert alert-info d-none">まだ生成した画像がありません。アップロードから変換を開始してください。</div>
+    <div id="gallery-grid" class="row g-3"></div>
+    <nav aria-label="ページネーション" class="mt-4">
+        <ul class="pagination justify-content-center" id="gallery-pagination"></ul>
+    </nav>
+</section>
+
+<template id="gallery-card-template">
+    <div class="col-lg-3 col-md-4 col-sm-6">
+        <div class="card h-100 shadow-sm gallery-card">
+            <img src="" class="card-img-top gallery-thumb" alt="">
+            <div class="card-body">
+                <h5 class="card-title small gallery-title"></h5>
+                <p class="card-text text-muted small gallery-date mb-2"></p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-sm btn-outline-primary view-detail" type="button">詳細を表示</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+{% include "frontend/partials/image_detail_modal.html" %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/gallery.js' %}"></script>
+<script src="{% static 'js/image_detail.js' %}"></script>
+{% endblock %}

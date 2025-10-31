@@ -5,7 +5,6 @@ import json
 import os
 from django.http import JsonResponse, FileResponse, Http404
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.core.paginator import Paginator
 from django.conf import settings
@@ -13,10 +12,11 @@ from django.db.models import Q, Prefetch
 from django.utils import timezone
 from images.models import ImageConversion, GeneratedImage
 from images.services.brightness import BrightnessAdjustmentService, BrightnessAdjustmentError
+from api.decorators import login_required_api
 
 
 @require_http_methods(["GET"])
-@login_required
+@login_required_api
 def gallery_list(request):
     """
     ギャラリー一覧取得
@@ -138,7 +138,7 @@ def gallery_list(request):
 
 
 @require_http_methods(["GET"])
-@login_required
+@login_required_api
 def gallery_detail(request, conversion_id):
     """
     変換詳細取得
@@ -213,7 +213,7 @@ def gallery_detail(request, conversion_id):
 
 @require_http_methods(["DELETE"])
 @csrf_exempt
-@login_required
+@login_required_api
 def gallery_delete(request, conversion_id):
     """
     変換削除（論理削除）
@@ -260,7 +260,7 @@ def gallery_delete(request, conversion_id):
 
 
 @require_http_methods(["GET"])
-@login_required
+@login_required_api
 def image_detail(request, image_id):
     """
     生成画像詳細取得
@@ -327,7 +327,7 @@ def image_detail(request, image_id):
 
 @require_http_methods(["DELETE"])
 @csrf_exempt
-@login_required
+@login_required_api
 def image_delete(request, image_id):
     """
     生成画像削除（論理削除）
@@ -371,7 +371,7 @@ def image_delete(request, image_id):
 
 
 @require_http_methods(["GET"])
-@login_required
+@login_required_api
 def image_download(request, image_id):
     """
     生成画像ダウンロード
@@ -429,7 +429,7 @@ def image_download(request, image_id):
 
 @require_http_methods(["PATCH"])
 @csrf_exempt
-@login_required
+@login_required_api
 def image_brightness(request, image_id):
     """
     画像輝度調整

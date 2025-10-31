@@ -22,6 +22,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
+    path('', include('frontend.urls')),
 ]
 
 # メディアファイルの配信設定（開発環境のみ）

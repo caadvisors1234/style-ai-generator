@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.cache import cache
 
 
 class UserProfile(models.Model):
@@ -97,6 +98,16 @@ class UserProfile(models.Model):
         """月間利用回数をリセット"""
         self.monthly_used = 0
         self.save(update_fields=['monthly_used', 'updated_at'])
+
+    def invalidate_usage_cache(self):
+        """利用状況キャッシュを無効化"""
+        cache.delete(f'usage_summary:{self.user_id}')
+        for months in range(1, 13):
+            cache.delete(f'usage_history:{self.user_id}:{months}')
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.invalidate_usage_cache()
 
 
 @receiver(post_save, sender=User)

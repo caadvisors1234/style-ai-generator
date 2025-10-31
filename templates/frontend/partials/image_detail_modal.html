@@ -1,0 +1,46 @@
+<div class="modal fade" id="imageDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">画像詳細</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted small">元画像</h6>
+                        <img id="detail-original" src="" alt="Original" class="img-fluid rounded border">
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted small">生成画像</h6>
+                        <img id="detail-generated" src="" alt="Generated" class="img-fluid rounded border">
+                    </div>
+                </div>
+                <dl class="row mt-3 small">
+                    <dt class="col-sm-3">生成日時</dt>
+                    <dd class="col-sm-9" id="detail-created-at">-</dd>
+                    <dt class="col-sm-3">プロンプト</dt>
+                    <dd class="col-sm-9" id="detail-prompt">-</dd>
+                    <dt class="col-sm-3">生成枚数</dt>
+                    <dd class="col-sm-9" id="detail-generation-count">-</dd>
+                </dl>
+                <div class="mb-3">
+                    <label for="brightness-range" class="form-label">輝度調整</label>
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="range" class="form-range" min="-50" max="50" id="brightness-range">
+                        <span class="badge bg-secondary" id="brightness-value">0</span>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" id="brightness-reset">リセット</button>
+                        <button class="btn btn-sm btn-primary" type="button" id="brightness-apply">適用</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button class="btn btn-outline-danger" type="button" id="detail-delete">削除</button>
+                <div>
+                    <a class="btn btn-outline-secondary" id="detail-download" href="#" target="_blank" rel="noopener">ダウンロード</a>
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">閉じる</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
