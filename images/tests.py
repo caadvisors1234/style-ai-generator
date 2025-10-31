@@ -3,12 +3,21 @@ import os
 import shutil
 import tempfile
 
+from datetime import timedelta
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from PIL import Image
-from django.test import TestCase, override_settings
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
+from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from images.services.upload import ImageUploadService, UploadValidationError
 from images.services.brightness import BrightnessAdjustmentService, BrightnessAdjustmentError
+from images.services.gemini_image_api import GeminiImageAPIService, GeminiImageAPIError
+from images.models import ImageConversion, GeneratedImage
 
 
 class ImageUploadServiceTests(TestCase):
@@ -100,3 +109,131 @@ class BrightnessAdjustmentServiceTests(TestCase):
         """
         with self.assertRaises(BrightnessAdjustmentError):
             BrightnessAdjustmentService.adjust_brightness(self.image_path, 100)
+
+
+class ImageModelTests(TestCase):
+    def setUp(self):
+        self.User = get_user_model()
+        self.user = self.User.objects.create_user(
+            username='image_tester', email='img@example.com', password='secret123'
+        )
+
+    def test_mark_status_helpers(self):
+        conversion = ImageConversion.objects.create(
+            user=self.user,
+            original_image_path='uploads/path.jpg',
+            original_image_name='path.jpg',
+            original_image_size=1234,
+            prompt='test',
+            generation_count=1,
+        )
+
+        self.assertEqual(conversion.job_id, f'job_{conversion.id}')
+
+        conversion.mark_as_processing()
+        conversion.refresh_from_db()
+        self.assertEqual(conversion.status, 'processing')
+
+        conversion.mark_as_completed(processing_time=1.23)
+        conversion.refresh_from_db()
+        self.assertEqual(conversion.status, 'completed')
+
+        conversion.mark_as_failed('error')
+        conversion.refresh_from_db()
+        self.assertEqual(conversion.status, 'failed')
+        self.assertEqual(conversion.error_message, 'error')
+
+    def test_generated_image_auto_expires(self):
+        conversion = ImageConversion.objects.create(
+            user=self.user,
+            original_image_path='uploads/original.jpg',
+            original_image_name='original.jpg',
+            original_image_size=100,
+            prompt='prompt',
+            generation_count=1,
+        )
+
+        image = GeneratedImage.objects.create(
+            conversion=conversion,
+            image_path='generated/user_1/test.jpg',
+            image_name='test.jpg',
+            image_size=200,
+        )
+
+        self.assertIsNotNone(image.expires_at)
+        self.assertTrue(image.expires_at > timezone.now())
+
+
+class DeleteExpiredImagesCommandTests(TestCase):
+    def setUp(self):
+        self.temp_media = tempfile.mkdtemp()
+        self.override = override_settings(MEDIA_ROOT=self.temp_media)
+        self.override.enable()
+
+        self.User = get_user_model()
+        self.user = self.User.objects.create_user(
+            username='cleanup', email='cleanup@example.com', password='secret123'
+        )
+
+    def tearDown(self):
+        self.override.disable()
+        shutil.rmtree(self.temp_media, ignore_errors=True)
+
+    def test_delete_expired_images_command_force(self):
+        conversion = ImageConversion.objects.create(
+            user=self.user,
+            original_image_path='uploads/original.jpg',
+            original_image_name='original.jpg',
+            original_image_size=100,
+            prompt='prompt',
+            generation_count=1,
+        )
+
+        expired_path = os.path.join('generated', 'expired.jpg')
+        full_path = os.path.join(self.temp_media, expired_path)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with Image.new('RGB', (32, 32), color=(200, 200, 200)) as img:
+            img.save(full_path, format='JPEG')
+
+        GeneratedImage.objects.create(
+            conversion=conversion,
+            image_path=expired_path,
+            image_name='expired.jpg',
+            image_size=123,
+            expires_at=timezone.now() - timedelta(days=1),
+            is_deleted=False,
+        )
+
+        call_command('delete_expired_images', '--force')
+
+        self.assertFalse(os.path.exists(full_path))
+        self.assertFalse(GeneratedImage.objects.filter(image_name='expired.jpg').exists())
+
+
+class GeminiImageServiceTests(TestCase):
+    @patch('images.services.gemini_image_api.GeminiImageAPIService.load_image', return_value=b'input-bytes')
+    @patch('images.services.gemini_image_api.GeminiImageAPIService.initialize_client')
+    def test_generate_images_success(self, mock_client_factory, mock_load):
+        mock_response = SimpleNamespace(parts=[
+            SimpleNamespace(text='desc', inline_data=SimpleNamespace(data=b'\xff\xd8\xff\xd9'))
+        ])
+        mock_client_factory.return_value = SimpleNamespace(
+            models=SimpleNamespace(generate_content=lambda **kwargs: mock_response)
+        )
+
+        results = GeminiImageAPIService.generate_images_from_reference('path.jpg', 'prompt', generation_count=1)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['description'], 'desc')
+
+    @patch('images.services.gemini_image_api.GeminiImageAPIService.load_image', return_value=b'input-bytes')
+    @patch('images.services.gemini_image_api.GeminiImageAPIService.initialize_client')
+    def test_generate_images_raises_on_failure(self, mock_client_factory, mock_load):
+        def failing_generate_content(**kwargs):
+            raise RuntimeError('API failure')
+
+        mock_client_factory.return_value = SimpleNamespace(
+            models=SimpleNamespace(generate_content=failing_generate_content)
+        )
+
+        with self.assertRaises(GeminiImageAPIError):
+            GeminiImageAPIService.generate_images_from_reference('path.jpg', 'prompt', generation_count=1)

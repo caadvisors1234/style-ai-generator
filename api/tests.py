@@ -1,6 +1,6 @@
 import io
-import os
 import json
+import os
 import shutil
 import tempfile
 from decimal import Decimal
@@ -9,14 +9,17 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from PIL import Image
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.test import TestCase, Client, override_settings
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from django.core.files.uploadedfile import SimpleUploadedFile
 
 from images.models import ImageConversion, GeneratedImage
+from images.services.brightness import BrightnessAdjustmentService
+from images.services.upload import ImageUploadService
 
 
 class AuthAPITestCase(TestCase):
@@ -347,3 +350,204 @@ class ConvertAPITestCase(TestCase):
         response = self.client.get(self.status_url(conversion.id))
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()['status'], 'error')
+
+
+class GalleryAPITestCase(TestCase):
+    def setUp(self):
+        self.temp_media = tempfile.mkdtemp()
+        self.override = override_settings(MEDIA_ROOT=self.temp_media, ALLOWED_HOSTS=['testserver', 'localhost'])
+        self.override.enable()
+
+        self.user = User.objects.create_user(
+            username='gallery_user', email='gallery@example.com', password='password123'
+        )
+        self.client.login(username='gallery_user', password='password123')
+
+        self.conversion = ImageConversion.objects.create(
+            user=self.user,
+            original_image_path='uploads/user_1/original.jpg',
+            original_image_name='original.jpg',
+            original_image_size=1024,
+            prompt='ギャラリーテスト',
+            generation_count=1,
+            status='completed',
+        )
+
+        self.generated_path = os.path.join('generated', 'user_1', 'generated.jpg')
+        full_generated_path = os.path.join(self.temp_media, self.generated_path)
+        os.makedirs(os.path.dirname(full_generated_path), exist_ok=True)
+        with Image.new('RGB', (64, 64), color=(200, 200, 200)) as img:
+            img.save(full_generated_path, format='JPEG')
+
+        self.generated_image = GeneratedImage.objects.create(
+            conversion=self.conversion,
+            image_path=self.generated_path,
+            image_name='generated.jpg',
+            image_size=4,
+        )
+
+    def tearDown(self):
+        self.override.disable()
+        shutil.rmtree(self.temp_media, ignore_errors=True)
+
+    def test_gallery_list_returns_conversions(self):
+        response = self.client.get('/api/v1/gallery/')
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload['status'], 'success')
+        self.assertEqual(payload['pagination']['total_count'], 1)
+        self.assertEqual(payload['conversions'][0]['id'], self.conversion.id)
+
+    def test_gallery_detail_and_image_detail(self):
+        response = self.client.get(f'/api/v1/gallery/{self.conversion.id}/')
+        self.assertEqual(response.status_code, 200)
+        detail = response.json()['conversion']
+        self.assertEqual(detail['prompt'], 'ギャラリーテスト')
+
+        image_response = self.client.get(f'/api/v1/gallery/images/{self.generated_image.id}/')
+        self.assertEqual(image_response.status_code, 200)
+        self.assertTrue(image_response.json()['image']['image_url'].endswith('generated.jpg'))
+
+    def test_brightness_adjust_and_download(self):
+        adjust_response = self.client.patch(
+            f'/api/v1/gallery/images/{self.generated_image.id}/brightness/',
+            data=json.dumps({'adjustment': 10}),
+            content_type='application/json'
+        )
+        self.assertEqual(adjust_response.status_code, 200)
+        self.assertEqual(adjust_response.json()['status'], 'success')
+
+        download_response = self.client.get(f'/api/v1/gallery/images/{self.generated_image.id}/download/')
+        self.assertEqual(download_response.status_code, 200)
+        self.assertIn('attachment', download_response['Content-Disposition'])
+
+    def test_delete_image_and_conversion(self):
+        delete_image_resp = self.client.delete(f'/api/v1/gallery/images/{self.generated_image.id}/delete/')
+        self.assertEqual(delete_image_resp.status_code, 200)
+        self.assertEqual(delete_image_resp.json()['status'], 'success')
+
+        delete_conv_resp = self.client.delete(f'/api/v1/gallery/{self.conversion.id}/delete/')
+        self.assertEqual(delete_conv_resp.status_code, 200)
+        self.assertFalse(ImageConversion.objects.filter(id=self.conversion.id, is_deleted=False).exists())
+
+    def test_gallery_permission_denied_for_other_user(self):
+        other = User.objects.create_user('otheruser', 'other@example.com', 'pass12345')
+        other_client = Client()
+        other_client.login(username='otheruser', password='pass12345')
+
+        response = other_client.get(f'/api/v1/gallery/{self.conversion.id}/')
+        self.assertEqual(response.status_code, 404)
+
+
+class IntegrationFlowTests(TestCase):
+    def setUp(self):
+        self.temp_media = tempfile.mkdtemp()
+        self.override = override_settings(MEDIA_ROOT=self.temp_media, ALLOWED_HOSTS=['testserver', 'localhost'])
+        self.override.enable()
+
+    def tearDown(self):
+        self.override.disable()
+        shutil.rmtree(self.temp_media, ignore_errors=True)
+
+    @patch('api.views.convert.process_image_conversion.delay')
+    @patch('images.tasks.GeminiImageAPIService.save_generated_image')
+    @patch('images.tasks.GeminiImageAPIService.generate_images_from_reference')
+    @patch('images.tasks.GeminiImageAPIService.load_image', return_value=b'input-bytes')
+    def test_end_to_end_flow(self, mock_load, mock_generate, mock_save, mock_delay):
+        user = User.objects.create_user('flowuser', 'flow@example.com', 'password123')
+        client = Client()
+        client.login(username='flowuser', password='password123')
+
+        mock_generate.return_value = [{
+            'image_data': b'\xff\xd8\xff\xd9',
+            'description': 'generated',
+            'generation_number': 1,
+            'prompt_used': 'prompt',
+            'aspect_ratio': '4:3'
+        }]
+
+        def save_generated(image_data, output_dir, filename):
+            relative = os.path.join(output_dir, filename)
+            full_path = os.path.join(self.temp_media, relative)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, 'wb') as fh:
+                fh.write(image_data)
+            return relative
+
+        mock_save.side_effect = save_generated
+
+        from images.tasks import process_image_conversion
+
+        def run_task(conv_id):
+            process_image_conversion.apply(args=(conv_id,), throw=True)
+            return SimpleNamespace(id='task-sync')
+
+        mock_delay.side_effect = run_task
+
+        upload_path = os.path.join(self.temp_media, 'upload.jpg')
+        with Image.new('RGB', (64, 64), color=(100, 100, 200)) as img:
+            img.save(upload_path, format='JPEG')
+
+        with open(upload_path, 'rb') as f:
+            response = client.post(
+                '/api/v1/convert/',
+                {
+                    'prompt': 'プロフェッショナルに',
+                    'generation_count': 1,
+                    'image': f,
+                }
+            )
+
+        self.assertEqual(response.status_code, 200)
+        conversion_id = response.json()['conversion_id']
+
+        status_response = client.get(f'/api/v1/convert/{conversion_id}/status/')
+        self.assertEqual(status_response.status_code, 200)
+        self.assertEqual(status_response.json()['conversion']['status'], 'completed')
+
+        gallery_response = client.get('/api/v1/gallery/')
+        self.assertEqual(gallery_response.status_code, 200)
+        self.assertGreaterEqual(gallery_response.json()['pagination']['total_count'], 1)
+
+
+class GalleryPerformanceTests(TestCase):
+    def setUp(self):
+        self.temp_media = tempfile.mkdtemp()
+        self.override = override_settings(MEDIA_ROOT=self.temp_media, ALLOWED_HOSTS=['testserver', 'localhost'])
+        self.override.enable()
+
+        self.user = User.objects.create_user('perf', 'perf@example.com', 'password123')
+        self.client.login(username='perf', password='password123')
+
+        for index in range(3):
+            conv = ImageConversion.objects.create(
+                user=self.user,
+                original_image_path=f'uploads/u_{index}.jpg',
+                original_image_name=f'u_{index}.jpg',
+                original_image_size=1000,
+                prompt=f'prompt {index}',
+                generation_count=1,
+                status='completed'
+            )
+
+            image_rel = os.path.join('generated', f'user_{self.user.id}', f'generated_{index}.jpg')
+            full_path = os.path.join(self.temp_media, image_rel)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with Image.new('RGB', (32, 32), color=(index * 40, index * 40, 200)) as img:
+                img.save(full_path, format='JPEG')
+
+            GeneratedImage.objects.create(
+                conversion=conv,
+                image_path=image_rel,
+                image_name=f'generated_{index}.jpg',
+                image_size=1024,
+            )
+
+    def tearDown(self):
+        self.override.disable()
+        shutil.rmtree(self.temp_media, ignore_errors=True)
+
+    def test_gallery_list_queries(self):
+        with self.assertNumQueries(5):
+            response = self.client.get('/api/v1/gallery/?per_page=12')
+            self.assertEqual(response.status_code, 200)
