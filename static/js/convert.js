@@ -3,6 +3,27 @@
   const generationSelect = document.getElementById('generation-count');
   const aspectSelect = document.getElementById('aspect-ratio');
 
+  async function ensureFileData(file, index) {
+    if (file.originalFile) {
+      return file.originalFile;
+    }
+
+    if (!file.preview_url) {
+      throw new Error('preload-missing');
+    }
+
+    const response = await fetch(file.preview_url, { credentials: 'include' });
+    if (!response.ok) {
+      throw new Error('fetch-failed');
+    }
+
+    const blob = await response.blob();
+    const filename = file.file_name || `image_${index + 1}`;
+    const retrievedFile = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+    file.originalFile = retrievedFile;
+    return retrievedFile;
+  }
+
   async function startConversion() {
     if (!startButton) return;
 
@@ -27,13 +48,16 @@
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
 
-        if (!file.originalFile) {
+        let sourceFile;
+        try {
+          sourceFile = await ensureFileData(file, i);
+        } catch (error) {
           notifyError(`画像 ${i + 1} のデータを取得できませんでした`);
           continue;
         }
 
         const formData = new FormData();
-        formData.append('image', file.originalFile, file.originalFile.name);
+        formData.append('image', sourceFile, sourceFile.name);
         formData.append('prompt', prompt);
         formData.append('generation_count', generationSelect.value);
         if (aspectSelect) {
