@@ -4,7 +4,10 @@ Accounts Admin設定
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.html import format_html
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 from .models import UserProfile
 
 
@@ -46,11 +49,47 @@ class UserProfileInline(admin.StackedInline):
 
 class CustomUserAdmin(BaseUserAdmin):
     """カスタムユーザー管理"""
+    # フォームを明示的に指定
+    form = UserChangeForm
+    add_form = UserCreationForm
+
     inlines = (UserProfileInline,)
 
     list_display = ('username', 'email', 'first_name', 'last_name',
                    'is_staff', 'monthly_usage_display', 'date_joined')
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
+
+    # パスワード変更リンクを含むreadonly_fields
+    readonly_fields = ('password_change_link', 'last_login', 'date_joined')
+
+    # フィールドセットを明示的に定義
+    fieldsets = (
+        (None, {
+            'fields': ('username', 'password_change_link')
+        }),
+        ('個人情報', {
+            'fields': ('first_name', 'last_name', 'email')
+        }),
+        ('権限', {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+        }),
+        ('重要な日付', {
+            'fields': ('last_login', 'date_joined')
+        }),
+    )
+
+    def password_change_link(self, obj):
+        """パスワード変更リンクを表示"""
+        if obj.pk:
+            change_password_url = reverse('admin:auth_user_password_change', args=[obj.pk])
+            return mark_safe(
+                f'<div style="margin-bottom: 10px;">'
+                f'<span style="color: #666; font-size: 0.9em;">生のパスワードは格納されていないため、このユーザーのパスワードを確認する方法はありません。</span><br>'
+                f'<a href="{change_password_url}" class="btn btn-primary" style="margin-top: 10px; display: inline-block; padding: 8px 16px; background-color: #417690; color: white; text-decoration: none; border-radius: 4px;">パスワードを変更</a>'
+                f'</div>'
+            )
+        return '-'
+    password_change_link.short_description = 'パスワード'
 
     def monthly_usage_display(self, obj):
         """月次利用状況の表示"""
