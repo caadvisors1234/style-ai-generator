@@ -69,12 +69,23 @@ class CustomUserAdmin(BaseUserAdmin):
         }),
         ('権限', {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
-            'description': 'is_active: チェックを外すとアカウントが停止されログインできなくなります'
         }),
         ('重要な日付', {
             'fields': ('last_login', 'date_joined')
         }),
     )
+
+    def get_form(self, request, obj=None, **kwargs):
+        """
+        フォームをカスタマイズしてis_activeのヘルプテキストを変更
+        """
+        form = super().get_form(request, obj, **kwargs)
+        if 'is_active' in form.base_fields:
+            form.base_fields['is_active'].label = '有効'
+            form.base_fields['is_active'].help_text = (
+                'チェックを外すとアカウントが停止され、このユーザーはログインできなくなります。'
+            )
+        return form
 
     def password_change_link(self, obj):
         """パスワード変更リンクを表示"""
