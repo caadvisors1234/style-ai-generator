@@ -340,10 +340,12 @@ textarea.form-control {
 .toast-header {
     background-color: var(--bg-primary);
     border-bottom: 1px solid var(--border-light);
+    color: var(--text-primary);
 }
 
 .toast-body {
     background-color: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 /* ================================================

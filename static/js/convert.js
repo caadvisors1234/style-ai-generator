@@ -17,32 +17,55 @@
       return;
     }
 
-    const formData = new FormData();
-    const first = files[0];
-
-    if (!first.originalFile) {
-      notifyError('アップロードした画像データを取得できませんでした');
-      return;
-    }
-
-    formData.append('image', first.originalFile, first.originalFile.name);
-    formData.append('prompt', prompt);
-    formData.append('generation_count', generationSelect.value);
-
     startButton.disabled = true;
 
     try {
-      const data = await APIClient.upload('/api/v1/convert/', formData);
-      notifySuccess('変換を開始しました');
+      // 複数画像を順番に変換処理
+      const conversionIds = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        if (!file.originalFile) {
+          notifyError(`画像 ${i + 1} のデータを取得できませんでした`);
+          continue;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file.originalFile, file.originalFile.name);
+        formData.append('prompt', prompt);
+        formData.append('generation_count', generationSelect.value);
+
+        try {
+          const data = await APIClient.upload('/api/v1/convert/', formData);
+          conversionIds.push(data.conversion_id);
+          notifySuccess(`画像 ${i + 1}/${files.length} の変換を開始しました`);
+        } catch (error) {
+          const payload = error.payload || {};
+          notifyError(`画像 ${i + 1} の変換開始に失敗: ${payload.message || '不明なエラー'}`);
+        }
+      }
+
+      // アップロード済みファイルを削除
       if (window.UploadManager) {
         const previousFiles = window.UploadManager.getFiles();
         await Promise.allSettled(previousFiles.map((file) => APIClient.delete('/api/v1/upload/delete/', { file_path: file.file_path })));
         window.UploadManager.clear();
       }
-      window.location.href = `/processing/${data.conversion_id}/`;
+
+      // 変換処理画面へ遷移
+      if (conversionIds.length > 0) {
+        if (conversionIds.length === 1) {
+          // 単一変換の場合は通常の処理画面
+          window.location.href = `/processing/${conversionIds[0]}/`;
+        } else {
+          // 複数変換の場合は複数変換処理画面
+          const idsParam = conversionIds.join(',');
+          window.location.href = `/processing/multiple/?ids=${idsParam}`;
+        }
+      }
     } catch (error) {
-      const payload = error.payload || {};
-      notifyError(payload.message || '変換の開始に失敗しました');
+      notifyError('変換処理中にエラーが発生しました');
     } finally {
       startButton.disabled = false;
     }

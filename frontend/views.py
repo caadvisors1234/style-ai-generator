@@ -28,6 +28,11 @@ class ProcessingPageView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class ProcessingMultiplePageView(LoginRequiredMixin, TemplateView):
+    template_name = 'frontend/processing_multiple.html'
+    login_url = reverse_lazy('frontend:login')
+
+
 class GalleryPageView(LoginRequiredMixin, TemplateView):
     template_name = 'frontend/gallery.html'
     login_url = reverse_lazy('frontend:login')

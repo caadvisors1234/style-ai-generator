@@ -53,7 +53,9 @@
       if (conversion.status === 'completed') {
         notifySuccess('画像変換が完了しました');
         clearInterval(timer);
-        setTimeout(() => window.location.href = '/gallery/', 1500);
+        // ギャラリーへ遷移（他の変換もバックグラウンドで進行中の可能性あり）
+        updateBar(100, 'completed', '完了しました！ギャラリーへ移動します...');
+        setTimeout(() => window.location.href = '/gallery/', 2000);
       } else if (conversion.status === 'failed') {
         notifyError(conversion.error_message || '画像変換に失敗しました');
         clearInterval(timer);

@@ -21,7 +21,7 @@
     target.classList.add('active');
 
     const promptArea = document.getElementById(customPromptId);
-    if (promptArea && !promptArea.value.trim()) {
+    if (promptArea) {
       promptArea.value = selectedText;
     }
   }

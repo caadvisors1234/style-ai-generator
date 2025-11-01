@@ -69,9 +69,11 @@
     brightnessRange.addEventListener('input', () => {
       brightnessValue.textContent = brightnessRange.value;
     });
-    brightnessReset.addEventListener('click', () => {
+    brightnessReset.addEventListener('click', async () => {
       brightnessRange.value = 0;
       brightnessValue.textContent = '0';
+      // リセット時は輝度0で適用
+      await applyBrightness();
     });
     brightnessApply.addEventListener('click', applyBrightness);
     deleteButton.addEventListener('click', deleteImage);
