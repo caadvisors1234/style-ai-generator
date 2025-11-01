@@ -3,13 +3,18 @@ API URLルーティング
 """
 
 from django.urls import path
-from .views import auth, convert, prompts, upload, gallery, usage
+from .views import auth, convert, prompts, upload, gallery, usage, health
 
 
 app_name = 'api'
 
 
 urlpatterns = [
+    # ヘルスチェックAPI
+    path('v1/health/', health.health_check, name='health_check'),
+    path('v1/ready/', health.readiness_check, name='readiness_check'),
+    path('v1/alive/', health.liveness_check, name='liveness_check'),
+
     # 認証API
     path('v1/auth/csrf/', auth.csrf_token_view, name='csrf_token'),
     path('v1/auth/login/', auth.login_view, name='login'),
