@@ -126,6 +126,7 @@ class ImageModelTests(TestCase):
             original_image_size=1234,
             prompt='test',
             generation_count=1,
+            aspect_ratio='4:3',
         )
 
         self.assertEqual(conversion.job_id, f'job_{conversion.id}')
@@ -151,6 +152,7 @@ class ImageModelTests(TestCase):
             original_image_size=100,
             prompt='prompt',
             generation_count=1,
+            aspect_ratio='4:3',
         )
 
         image = GeneratedImage.objects.create(
@@ -187,6 +189,7 @@ class DeleteExpiredImagesCommandTests(TestCase):
             original_image_size=100,
             prompt='prompt',
             generation_count=1,
+            aspect_ratio='4:3',
         )
 
         expired_path = os.path.join('generated', 'expired.jpg')

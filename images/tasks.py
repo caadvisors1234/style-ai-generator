@@ -80,7 +80,7 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
             original_image_path=original_image_path,
             prompt=conversion.prompt,
             generation_count=conversion.generation_count,
-            aspect_ratio="4:3"  # デフォルトのアスペクト比
+            aspect_ratio=conversion.aspect_ratio,
         )
 
         logger.info(f"Generated {len(generated_results)} images")

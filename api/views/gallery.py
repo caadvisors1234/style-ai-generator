@@ -10,6 +10,7 @@ from django.core.paginator import Paginator
 from django.conf import settings
 from django.db.models import Q, Prefetch
 from django.utils import timezone
+from pathlib import Path
 from images.models import ImageConversion, GeneratedImage
 from images.services.brightness import BrightnessAdjustmentService, BrightnessAdjustmentError
 from api.decorators import login_required_api
@@ -107,6 +108,7 @@ def gallery_list(request):
                 'original_image_name': conversion.original_image_name,
                 'prompt': conversion.prompt[:100] + '...' if len(conversion.prompt) > 100 else conversion.prompt,
                 'generation_count': conversion.generation_count,
+                'aspect_ratio': conversion.aspect_ratio,
                 'status': conversion.status,
                 'processing_time': float(conversion.processing_time) if conversion.processing_time else None,
                 'created_at': conversion.created_at.isoformat(),
@@ -190,6 +192,7 @@ def gallery_detail(request, conversion_id):
                 'original_image_size': conversion.original_image_size,
                 'prompt': conversion.prompt,
                 'generation_count': conversion.generation_count,
+                'aspect_ratio': conversion.aspect_ratio,
                 'status': conversion.status,
                 'processing_time': float(conversion.processing_time) if conversion.processing_time else None,
                 'error_message': conversion.error_message,
@@ -307,6 +310,7 @@ def image_detail(request, image_id):
                 'conversion': {
                     'id': image.conversion.id,
                     'original_image_url': f"/media/{image.conversion.original_image_path}",
+                    'aspect_ratio': image.conversion.aspect_ratio,
                     'prompt': image.conversion.prompt[:100] + '...' if len(image.conversion.prompt) > 100 else image.conversion.prompt
                 }
             }
@@ -470,19 +474,40 @@ def image_brightness(request, image_id):
             is_deleted=False
         )
 
-        # 輝度調整
-        adjusted_image_path = BrightnessAdjustmentService.adjust_brightness(
-            image.image_path,
-            adjustment
-        )
+        base_image_path = BrightnessAdjustmentService.resolve_base_image_path(image.image_path)
+        previous_adjusted_path = image.image_path if image.image_path != base_image_path else None
 
-        # データベース更新
-        image.brightness_adjustment = adjustment
-        if adjusted_image_path != image.image_path:
-            # 新しいパスに更新
+        if adjustment == 0:
+            # 0の場合は元画像に戻す
+            if previous_adjusted_path:
+                BrightnessAdjustmentService.delete_adjusted_image(previous_adjusted_path)
+            image.image_path = base_image_path
+            image.image_name = os.path.basename(base_image_path)
+            image.brightness_adjustment = 0
+            base_full_path = Path(settings.MEDIA_ROOT) / base_image_path
+            if base_full_path.exists():
+                image.image_size = base_full_path.stat().st_size
+            image.updated_at = timezone.now()
+            image.save(update_fields=['image_path', 'image_name', 'image_size', 'brightness_adjustment', 'updated_at'])
+        else:
+            adjusted_image_path = BrightnessAdjustmentService.adjust_brightness(
+                base_image_path,
+                adjustment
+            )
+
+            if previous_adjusted_path and previous_adjusted_path != adjusted_image_path:
+                BrightnessAdjustmentService.delete_adjusted_image(previous_adjusted_path)
+
             image.image_path = adjusted_image_path
-        image.updated_at = timezone.now()
-        image.save()
+            image.image_name = os.path.basename(adjusted_image_path)
+            image.brightness_adjustment = adjustment
+            adjusted_full_path = Path(settings.MEDIA_ROOT) / adjusted_image_path
+            if adjusted_full_path.exists():
+                image.image_size = adjusted_full_path.stat().st_size
+            image.updated_at = timezone.now()
+            image.save(update_fields=['image_path', 'image_name', 'image_size', 'brightness_adjustment', 'updated_at'])
+
+        message = '輝度をリセットしました' if adjustment == 0 else '輝度を調整しました'
 
         return JsonResponse({
             'status': 'success',
@@ -490,7 +515,7 @@ def image_brightness(request, image_id):
                 'id': image.id,
                 'image_url': f"/media/{image.image_path}",
                 'brightness_adjustment': image.brightness_adjustment,
-                'message': '輝度を調整しました'
+                'message': message
             }
         })
 

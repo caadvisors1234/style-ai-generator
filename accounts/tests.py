@@ -89,6 +89,7 @@ class PermissionTests(TestCase):
             original_image_size=100,
             prompt='prompt',
             generation_count=1,
+            aspect_ratio='4:3',
         )
 
         client = Client()

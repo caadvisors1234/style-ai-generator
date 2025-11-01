@@ -163,6 +163,7 @@ class UsageAPITestCase(TestCase):
             original_image_size=1234,
             prompt='current',
             generation_count=2,
+            aspect_ratio='4:3',
             status='completed',
         )
         ImageConversion.objects.filter(pk=current_conversion.pk).update(created_at=now)
@@ -175,6 +176,7 @@ class UsageAPITestCase(TestCase):
             original_image_size=1234,
             prompt='past',
             generation_count=3,
+            aspect_ratio='4:3',
             status='completed',
         )
         ImageConversion.objects.filter(pk=past_conversion.pk).update(created_at=previous_month)
@@ -250,6 +252,7 @@ class ConvertAPITestCase(TestCase):
             {
                 'prompt': '背景を白に変更',
                 'generation_count': 2,
+                'aspect_ratio': '16:9',
                 'image': upload,
             }
         )
@@ -263,6 +266,8 @@ class ConvertAPITestCase(TestCase):
         self.assertEqual(conversion.user, self.user)
         self.assertEqual(conversion.prompt, '背景を白に変更')
         self.assertEqual(conversion.generation_count, 2)
+        self.assertEqual(conversion.aspect_ratio, '16:9')
+        self.assertEqual(data['aspect_ratio'], '16:9')
         mock_delay.assert_called_once_with(conversion.id)
 
         self.user.refresh_from_db()
@@ -303,6 +308,7 @@ class ConvertAPITestCase(TestCase):
             original_image_size=1234,
             prompt='テストプロンプト',
             generation_count=1,
+            aspect_ratio='4:3',
             status='completed',
             processing_time=Decimal('1.23'),
         )
@@ -328,6 +334,7 @@ class ConvertAPITestCase(TestCase):
         self.assertEqual(data['conversion']['status'], 'completed')
         self.assertEqual(len(data['images']), 1)
         self.assertTrue(data['images'][0]['url'].startswith('/media/'))
+        self.assertEqual(data['conversion']['aspect_ratio'], '4:3')
 
     def test_convert_status_returns_404_for_other_user(self):
         """
@@ -345,6 +352,7 @@ class ConvertAPITestCase(TestCase):
             original_image_size=1234,
             prompt='テスト',
             generation_count=1,
+            aspect_ratio='4:3',
         )
 
         response = self.client.get(self.status_url(conversion.id))
@@ -370,6 +378,7 @@ class GalleryAPITestCase(TestCase):
             original_image_size=1024,
             prompt='ギャラリーテスト',
             generation_count=1,
+            aspect_ratio='4:3',
             status='completed',
         )
 
@@ -397,25 +406,66 @@ class GalleryAPITestCase(TestCase):
         self.assertEqual(payload['status'], 'success')
         self.assertEqual(payload['pagination']['total_count'], 1)
         self.assertEqual(payload['conversions'][0]['id'], self.conversion.id)
+        self.assertEqual(payload['conversions'][0]['aspect_ratio'], '4:3')
 
     def test_gallery_detail_and_image_detail(self):
         response = self.client.get(f'/api/v1/gallery/{self.conversion.id}/')
         self.assertEqual(response.status_code, 200)
         detail = response.json()['conversion']
         self.assertEqual(detail['prompt'], 'ギャラリーテスト')
+        self.assertEqual(detail['aspect_ratio'], '4:3')
 
         image_response = self.client.get(f'/api/v1/gallery/images/{self.generated_image.id}/')
         self.assertEqual(image_response.status_code, 200)
         self.assertTrue(image_response.json()['image']['image_url'].endswith('generated.jpg'))
 
     def test_brightness_adjust_and_download(self):
+        original_path = self.generated_image.image_path
+
         adjust_response = self.client.patch(
             f'/api/v1/gallery/images/{self.generated_image.id}/brightness/',
             data=json.dumps({'adjustment': 10}),
             content_type='application/json'
         )
         self.assertEqual(adjust_response.status_code, 200)
-        self.assertEqual(adjust_response.json()['status'], 'success')
+        adjust_payload = adjust_response.json()
+        self.assertEqual(adjust_payload['status'], 'success')
+        self.assertEqual(adjust_payload['image']['brightness_adjustment'], 10)
+        self.assertIn('_brightness_+10', adjust_payload['image']['image_url'])
+
+        self.generated_image.refresh_from_db()
+        adjusted_path = self.generated_image.image_path
+        self.assertIn('_brightness_+10', adjusted_path)
+        self.assertEqual(self.generated_image.brightness_adjustment, 10)
+
+        second_adjust = self.client.patch(
+            f'/api/v1/gallery/images/{self.generated_image.id}/brightness/',
+            data=json.dumps({'adjustment': 20}),
+            content_type='application/json'
+        )
+        self.assertEqual(second_adjust.status_code, 200)
+        second_payload = second_adjust.json()
+        self.assertEqual(second_payload['image']['brightness_adjustment'], 20)
+        self.assertIn('_brightness_+20', second_payload['image']['image_url'])
+
+        self.generated_image.refresh_from_db()
+        self.assertEqual(self.generated_image.brightness_adjustment, 20)
+        self.assertIn('_brightness_+20', self.generated_image.image_path)
+
+        reset_response = self.client.patch(
+            f'/api/v1/gallery/images/{self.generated_image.id}/brightness/',
+            data=json.dumps({'adjustment': 0}),
+            content_type='application/json'
+        )
+        self.assertEqual(reset_response.status_code, 200)
+        reset_payload = reset_response.json()
+        self.assertEqual(reset_payload['status'], 'success')
+        self.assertEqual(reset_payload['image']['brightness_adjustment'], 0)
+        self.assertEqual(reset_payload['image']['message'], '輝度をリセットしました')
+        self.assertNotIn('_brightness_', reset_payload['image']['image_url'])
+
+        self.generated_image.refresh_from_db()
+        self.assertEqual(self.generated_image.image_path, original_path)
 
         download_response = self.client.get(f'/api/v1/gallery/images/{self.generated_image.id}/download/')
         self.assertEqual(download_response.status_code, 200)
@@ -463,7 +513,7 @@ class IntegrationFlowTests(TestCase):
             'description': 'generated',
             'generation_number': 1,
             'prompt_used': 'prompt',
-            'aspect_ratio': '4:3'
+            'aspect_ratio': '3:4'
         }]
 
         def save_generated(image_data, output_dir, filename):
@@ -494,20 +544,27 @@ class IntegrationFlowTests(TestCase):
                 {
                     'prompt': 'プロフェッショナルに',
                     'generation_count': 1,
+                    'aspect_ratio': '3:4',
                     'image': f,
                 }
             )
 
         self.assertEqual(response.status_code, 200)
-        conversion_id = response.json()['conversion_id']
+        response_payload = response.json()
+        conversion_id = response_payload['conversion_id']
+        self.assertEqual(response_payload['aspect_ratio'], '3:4')
 
         status_response = client.get(f'/api/v1/convert/{conversion_id}/status/')
         self.assertEqual(status_response.status_code, 200)
-        self.assertEqual(status_response.json()['conversion']['status'], 'completed')
+        status_payload = status_response.json()
+        self.assertEqual(status_payload['conversion']['status'], 'completed')
+        self.assertEqual(status_payload['conversion']['aspect_ratio'], '3:4')
 
         gallery_response = client.get('/api/v1/gallery/')
         self.assertEqual(gallery_response.status_code, 200)
-        self.assertGreaterEqual(gallery_response.json()['pagination']['total_count'], 1)
+        gallery_payload = gallery_response.json()
+        self.assertGreaterEqual(gallery_payload['pagination']['total_count'], 1)
+        self.assertEqual(gallery_payload['conversions'][0]['aspect_ratio'], '3:4')
 
 
 class GalleryPerformanceTests(TestCase):
@@ -527,6 +584,7 @@ class GalleryPerformanceTests(TestCase):
                 original_image_size=1000,
                 prompt=f'prompt {index}',
                 generation_count=1,
+                aspect_ratio='4:3',
                 status='completed'
             )
 

@@ -1,6 +1,7 @@
 (() => {
   const startButton = document.getElementById('start-conversion');
   const generationSelect = document.getElementById('generation-count');
+  const aspectSelect = document.getElementById('aspect-ratio');
 
   async function startConversion() {
     if (!startButton) return;
@@ -35,6 +36,9 @@
         formData.append('image', file.originalFile, file.originalFile.name);
         formData.append('prompt', prompt);
         formData.append('generation_count', generationSelect.value);
+        if (aspectSelect) {
+          formData.append('aspect_ratio', aspectSelect.value);
+        }
 
         try {
           const data = await APIClient.upload('/api/v1/convert/', formData);

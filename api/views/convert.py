@@ -15,6 +15,7 @@ from api.decorators import login_required_api
 
 from images.models import ImageConversion, GeneratedImage
 from images.tasks import process_image_conversion
+from images.services.gemini_image_api import GeminiImageAPIService
 
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ def convert_start(request):
         - image: File (required)
         - prompt: string (required)
         - generation_count: int (1-5, default: 1)
+        - aspect_ratio: str (optional, supported ratio)
 
     Response (Success):
         {
@@ -56,6 +58,8 @@ def convert_start(request):
         prompt = request.POST.get('prompt')
         generation_count = int(request.POST.get('generation_count', 1))
 
+        aspect_ratio = request.POST.get('aspect_ratio') or GeminiImageAPIService.DEFAULT_ASPECT_RATIO
+
         # バリデーション
         if not image_file:
             return JsonResponse({
@@ -73,6 +77,12 @@ def convert_start(request):
             return JsonResponse({
                 'status': 'error',
                 'message': '生成枚数は1から5の間で指定してください'
+            }, status=400)
+
+        if aspect_ratio not in GeminiImageAPIService.SUPPORTED_ASPECT_RATIOS:
+            return JsonResponse({
+                'status': 'error',
+                'message': '画像比率がサポート対象外です'
             }, status=400)
 
         # ファイルサイズチェック（10MB）
@@ -122,6 +132,7 @@ def convert_start(request):
                 original_image_size=image_file.size,
                 prompt=prompt,
                 generation_count=generation_count,
+                aspect_ratio=aspect_ratio,
                 status='pending'
             )
 
@@ -144,7 +155,8 @@ def convert_start(request):
             'conversion_id': conversion.id,
             'job_id': conversion.job_id,
             'task_id': task.id,
-            'estimated_time': estimated_time
+            'estimated_time': estimated_time,
+            'aspect_ratio': aspect_ratio,
         })
 
     except ValueError:
@@ -238,6 +250,7 @@ def convert_status(request, conversion_id):
                 'updated_at': conversion.updated_at.isoformat(),
                 'generation_count': conversion.generation_count,
                 'current_count': current_generated,
+                'aspect_ratio': conversion.aspect_ratio,
             }
         }
 

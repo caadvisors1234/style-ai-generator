@@ -61,7 +61,7 @@ class BrightnessAdjustmentService:
         画像の輝度を調整
 
         Args:
-            image_path: 元画像の相対パス（MEDIA_ROOTからの相対パス）
+            image_path: 元画像（または調整済み画像）の相対パス
             adjustment: 調整値（-50〜+50）
 
         Returns:
@@ -75,14 +75,23 @@ class BrightnessAdjustmentService:
 
         # adjustment=0の場合は何もしない
         if adjustment == 0:
-            return image_path
+            return cls.resolve_base_image_path(image_path)
 
         try:
-            # フルパスに変換
-            full_image_path = Path(settings.MEDIA_ROOT) / image_path
+            # 元画像のパスを解決
+            base_relative_path = cls.resolve_base_image_path(image_path)
+            full_image_path = Path(settings.MEDIA_ROOT) / base_relative_path
 
             if not full_image_path.exists():
-                raise BrightnessAdjustmentError('画像ファイルが見つかりません')
+                # 元画像が見つからない場合は現在のパスで再試行
+                fallback_path = Path(settings.MEDIA_ROOT) / image_path
+                if not fallback_path.exists():
+                    raise BrightnessAdjustmentError('画像ファイルが見つかりません')
+                full_image_path = fallback_path
+                base_relative_path = image_path
+
+            # 変換先ディレクトリ
+            output_dir = full_image_path.parent
 
             # 画像を開く
             with Image.open(full_image_path) as img:
@@ -99,7 +108,7 @@ class BrightnessAdjustmentService:
                     full_image_path.name,
                     adjustment
                 )
-                adjusted_path = full_image_path.parent / adjusted_filename
+                adjusted_path = output_dir / adjusted_filename
 
                 # 調整済み画像を保存
                 # RGBAの場合はRGBに変換
@@ -128,6 +137,24 @@ class BrightnessAdjustmentService:
             raise BrightnessAdjustmentError('画像ファイルが見つかりません')
         except Exception as e:
             raise BrightnessAdjustmentError(f'輝度調整に失敗しました: {str(e)}')
+
+    @classmethod
+    def resolve_base_image_path(cls, image_path: str) -> str:
+        """
+        調整前の元画像パスを解決
+
+        Args:
+            image_path: 現在の画像パス
+
+        Returns:
+            元画像の相対パス
+        """
+        path = Path(image_path)
+        stem = path.stem
+        if '_brightness_' in stem:
+            stem = stem.split('_brightness_')[0]
+            return str(path.with_name(f"{stem}{path.suffix}"))
+        return image_path
 
     @classmethod
     def _generate_adjusted_filename(cls, original_filename: str, adjustment: int) -> str:

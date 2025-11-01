@@ -43,6 +43,22 @@ def generated_image_path(instance, filename):
     return f"generated/user_{instance.conversion.user.id}/{new_filename}"
 
 
+ASPECT_RATIO_CHOICES = [
+    ('1:1', '1:1'),
+    ('3:4', '3:4'),
+    ('4:3', '4:3'),
+    ('9:16', '9:16'),
+    ('16:9', '16:9'),
+    ('3:2', '3:2'),
+    ('2:3', '2:3'),
+    ('21:9', '21:9'),
+    ('9:21', '9:21'),
+    ('4:5', '4:5'),
+]
+
+DEFAULT_ASPECT_RATIO = '4:3'
+
+
 class ImageConversion(models.Model):
     """
     画像変換履歴テーブル
@@ -81,6 +97,13 @@ class ImageConversion(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         verbose_name='生成枚数',
         help_text='生成する画像の枚数（1-5枚）'
+    )
+    aspect_ratio = models.CharField(
+        max_length=10,
+        choices=ASPECT_RATIO_CHOICES,
+        default=DEFAULT_ASPECT_RATIO,
+        verbose_name='画像比率',
+        help_text='生成する画像のアスペクト比'
     )
     status = models.CharField(
         max_length=20,
@@ -326,3 +349,17 @@ class PromptPreset(models.Model):
 
     def __str__(self):
         return f'{self.name} ({self.get_category_display()})'
+ASPECT_RATIO_CHOICES = [
+    ('1:1', '1:1'),
+    ('3:4', '3:4'),
+    ('4:3', '4:3'),
+    ('9:16', '9:16'),
+    ('16:9', '16:9'),
+    ('3:2', '3:2'),
+    ('2:3', '2:3'),
+    ('21:9', '21:9'),
+    ('9:21', '9:21'),
+    ('4:5', '4:5'),
+]
+
+DEFAULT_ASPECT_RATIO = '4:3'

@@ -7,7 +7,6 @@
   const generatedImg = document.getElementById('detail-generated');
   const createdAtEl = document.getElementById('detail-created-at');
   const promptEl = document.getElementById('detail-prompt');
-  const countEl = document.getElementById('detail-generation-count');
   const brightnessRange = document.getElementById('brightness-range');
   const brightnessValue = document.getElementById('brightness-value');
   const brightnessReset = document.getElementById('brightness-reset');
@@ -26,11 +25,15 @@
     state.conversionId = image.conversion.id;
     state.imageId = image.id;
 
-    originalImg.src = image.conversion.original_image_url;
-    generatedImg.src = image.image_url;
+    const bustCache = (url) => {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}t=${Date.now()}`;
+    };
+
+    originalImg.src = bustCache(image.conversion.original_image_url);
+    generatedImg.src = bustCache(image.image_url);
     createdAtEl.textContent = new Date(image.created_at).toLocaleString('ja-JP');
     promptEl.textContent = image.conversion.prompt;
-    countEl.textContent = image.conversion.generation_count || '-';
     brightnessRange.value = image.brightness_adjustment ?? 0;
     brightnessValue.textContent = brightnessRange.value;
     downloadLink.href = `/api/v1/gallery/images/${image.id}/download/`;
@@ -41,8 +44,13 @@
     try {
       const adjustment = Number(brightnessRange.value);
       const data = await APIClient.patch(`/api/v1/gallery/images/${state.imageId}/brightness/`, { adjustment });
-      generatedImg.src = data.image.image_url;
-      notifySuccess('輝度を調整しました');
+      const image = data.image;
+      const imageUrl = image.image_url;
+      const separator = imageUrl.includes('?') ? '&' : '?';
+      generatedImg.src = `${imageUrl}${separator}t=${Date.now()}`;
+      brightnessRange.value = String(image.brightness_adjustment ?? 0);
+      brightnessValue.textContent = brightnessRange.value;
+      notifySuccess(image.message || '輝度を調整しました');
     } catch (error) {
       notifyError('輝度調整に失敗しました');
     }
