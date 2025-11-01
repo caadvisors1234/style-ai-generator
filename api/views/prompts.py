@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 @require_http_methods(["GET"])
-@cache_page(60 * 60)  # 1時間キャッシュ
 def prompts_list(request):
     """
     プロンプトプリセット一覧API
