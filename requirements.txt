@@ -26,6 +26,10 @@ google-genai>=0.3.0
 # API & Web
 gunicorn>=21.0.0
 
+# Scraping
+requests
+beautifulsoup4
+
 # Admin UI Theme
 django-jazzmin>=3.0.0
 

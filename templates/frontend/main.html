@@ -28,6 +28,19 @@
             <p class="text-muted small mb-0" style="margin-top: 1.5rem;">JPEG / PNG / WebP、最大10枚、1枚あたり10MBまで</p>
         </div>
     </div>
+    <div class="card mb-3">
+        <div class="card-body">
+            <label class="form-label" for="hpb-url-input">HotPepper BeautyのURLから画像を取得</label>
+            <div class="input-group">
+                <input id="hpb-url-input" type="url" class="form-control" placeholder="スタイル、スタイリスト、ブログのURLをペースト">
+                <button id="fetch-hpb-images-button" class="btn btn-outline-primary" type="button">
+                    <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                    <span class="button-text">取得</span>
+                </button>
+            </div>
+            <small class="form-text text-muted mt-2">スタイル、スタイリスト、ブログページのURLに対応しています。</small>
+        </div>
+    </div>
     <div id="upload-errors" class="alert alert-danger d-none"></div>
     <div id="uploaded-list" class="row g-3"></div>
 </section>

@@ -3,7 +3,7 @@ API URLルーティング
 """
 
 from django.urls import path
-from .views import auth, convert, prompts, upload, gallery, usage, health
+from .views import auth, convert, prompts, upload, gallery, usage, health, scrape
 
 
 app_name = 'api'
@@ -25,6 +25,9 @@ urlpatterns = [
     path('v1/upload/', upload.upload_images, name='upload_images'),
     path('v1/upload/delete/', upload.delete_upload, name='delete_upload'),
     path('v1/upload/validate/', upload.validate_upload, name='validate_upload'),
+
+    # スクレイピングAPI
+    path('v1/scrape/', scrape.scrape_from_url, name='scrape_from_url'),
 
     # 変換API
     path('v1/convert/', convert.convert_start, name='convert_start'),

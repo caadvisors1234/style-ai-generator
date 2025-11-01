@@ -5,6 +5,10 @@
   const uploadedList = document.getElementById('uploaded-list');
   const errorBox = document.getElementById('upload-errors');
   const template = document.getElementById('uploaded-item-template');
+  const hpbUrlInput = document.getElementById('hpb-url-input');
+  const fetchHPBButton = document.getElementById('fetch-hpb-images-button');
+  const fetchHPBSpinner = fetchHPBButton ? fetchHPBButton.querySelector('.spinner-border') : null;
+  const fetchHPBButtonText = fetchHPBButton ? fetchHPBButton.querySelector('.button-text') : null;
   const startButton = document.getElementById('start-conversion');
 
   const state = {
@@ -77,6 +81,40 @@
     }
   }
 
+  async function handleFetchHPBImages() {
+    if (!hpbUrlInput || !fetchHPBButton) return;
+
+    const targetUrl = hpbUrlInput.value.trim();
+    if (!targetUrl) return;
+
+    clearError();
+    fetchHPBButton.disabled = true;
+    if (fetchHPBSpinner) fetchHPBSpinner.classList.remove('d-none');
+    if (fetchHPBButtonText) fetchHPBButtonText.textContent = '取得中...';
+
+    try {
+      const response = await APIClient.post('/api/v1/scrape/', { url: targetUrl });
+      const files = Array.isArray(response.uploaded_files) ? response.uploaded_files : [];
+
+      files.forEach((info) => {
+        state.uploads.push({
+          ...info,
+          originalFile: null,
+        });
+      });
+
+      renderUploads();
+      notifySuccess(`${response.count}件の画像を取得しました`);
+    } catch (error) {
+      const payload = error?.payload || {};
+      notifyError(payload.message || '画像の取得に失敗しました。');
+    } finally {
+      fetchHPBButton.disabled = false;
+      if (fetchHPBSpinner) fetchHPBSpinner.classList.add('d-none');
+      if (fetchHPBButtonText) fetchHPBButtonText.textContent = '取得';
+    }
+  }
+
   async function removeUpload(index) {
     const target = state.uploads[index];
     if (!target) return;
@@ -119,6 +157,10 @@
         uploadFiles(event.target.files);
         fileInput.value = '';
       });
+    }
+
+    if (fetchHPBButton) {
+      fetchHPBButton.addEventListener('click', handleFetchHPBImages);
     }
 
     if (uploadedList) {
