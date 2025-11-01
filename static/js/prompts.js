@@ -6,7 +6,7 @@
   function renderPresetButton(preset) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'btn btn-outline-secondary btn-sm preset-button';
+    button.className = 'prompt-preset-btn preset-button';
     button.dataset.prompt = preset.prompt;
     button.textContent = preset.name;
     return button;

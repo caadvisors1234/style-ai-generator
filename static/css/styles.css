@@ -1,37 +1,440 @@
-.drop-zone {
-    border: 2px dashed #0d6efd;
+/* ================================================
+   Style AI Generator - Custom Styles
+   カラースキーム: ホワイトベース + ピンク差し色
+   アクセント: #DE6787 / 背景: #F9FAFB
+   ================================================ */
+
+/* ================================================
+   CSS Variables - カスタムカラー定義
+   ================================================ */
+:root {
+    /* アクセントカラー（ピンク） */
+    --accent-color: #DE6787;
+    --accent-hover: #C95572;
+    --accent-light: #F5E5EB;
+    --accent-lighter: #FCF5F7;
+
+    /* 背景カラー */
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F9FAFB;
+    --bg-tertiary: #F3F4F6;
+
+    /* テキストカラー */
+    --text-primary: #1F2937;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+
+    /* ボーダーカラー */
+    --border-color: #E5E7EB;
+    --border-light: #F3F4F6;
+
+    /* ステータスカラー */
+    --danger-color: #DC2626;
+    --danger-bg: #FEE2E2;
+    --danger-text: #991B1B;
+    --success-bg: #D1FAE5;
+    --success-text: #065F46;
+    --processing-text: #BE185D;
+
+    /* シャドウ */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* トランジション */
+    --transition-base: all 0.2s ease;
+    --transition-slow: all 0.3s ease;
+}
+
+/* ================================================
+   Global Styles - 全体のベーススタイル
+   ================================================ */
+body {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+}
+
+/* ブランドカラー適用 */
+.text-brand {
+    color: var(--accent-color) !important;
+}
+
+/* ================================================
+   Bootstrap Override - Bootstrapカラーオーバーライド
+   ================================================ */
+
+/* Primary Color (青 → ピンク) */
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus,
+.btn-check:checked + .btn-primary,
+.bg-primary,
+.badge.bg-primary {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+    box-shadow: 0 0 0 0.25rem rgba(222, 103, 135, 0.25);
+}
+
+.btn-outline-primary {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+.btn-outline-primary:focus,
+.btn-outline-primary:active {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+    box-shadow: 0 0 0 0.25rem rgba(222, 103, 135, 0.25);
+    color: white;
+}
+
+/* Link Colors */
+a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: var(--transition-base);
+}
+
+a:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+}
+
+/* Form Controls */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.25rem rgba(222, 103, 135, 0.1);
+}
+
+/* ================================================
+   Card Styles - カードコンポーネント
+   ================================================ */
+.card {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
     border-radius: 0.75rem;
-    padding: 2.5rem 1rem;
-    background-color: #f8f9fa;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-base);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* ================================================
+   Drop Zone Styles - ドラッグ&ドロップエリア
+   ================================================ */
+.drop-zone {
+    border: 2px dashed var(--accent-color);
+    border-radius: 1rem;
+    padding: 3rem 1.5rem;
+    background-color: var(--accent-lighter);
+    transition: var(--transition-base);
+    text-align: center;
+}
+
+.drop-zone:hover {
+    background-color: var(--accent-light);
+    border-color: var(--accent-hover);
 }
 
 .drop-zone.drag-over {
-    background-color: #e7f1ff;
-    border-color: #084298;
+    background-color: var(--accent-light);
+    border-color: var(--accent-hover);
+    border-style: solid;
+    transform: scale(1.01);
 }
 
+/* ================================================
+   Gallery Styles - ギャラリー関連
+   ================================================ */
 .uploaded-thumb,
 .gallery-thumb {
     object-fit: cover;
     height: 200px;
+    border-radius: 0.5rem;
+    transition: var(--transition-base);
 }
 
 .gallery-card {
     cursor: pointer;
-    transition: transform 0.15s ease;
+    transition: var(--transition-slow);
+    border: 1px solid var(--border-light);
 }
 
 .gallery-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent-color);
 }
 
+.gallery-card .card-body {
+    padding: 1rem;
+}
+
+.gallery-card .card-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.gallery-card .card-text {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* ================================================
+   Button Styles - ボタンスタイル強化
+   ================================================ */
+.btn {
+    border-radius: 0.5rem;
+    font-weight: 500;
+    padding: 0.5rem 1.25rem;
+    transition: var(--transition-base);
+}
+
+.btn-sm {
+    padding: 0.375rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-outline-secondary {
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--bg-tertiary);
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+.btn-outline-danger:hover {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+/* ================================================
+   Modal Styles - モーダルスタイル
+   ================================================ */
+.modal-content {
+    border-radius: 1rem;
+    border: none;
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--border-light);
+    padding: 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-light);
+    padding: 1.5rem;
+}
+
+.modal-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* ================================================
+   Form Styles - フォーム要素
+   ================================================ */
+.form-label {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.form-control,
+.form-select {
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.625rem 1rem;
+    transition: var(--transition-base);
+}
+
+.form-control:hover,
+.form-select:hover {
+    border-color: var(--accent-color);
+}
+
+textarea.form-control {
+    resize: vertical;
+}
+
+/* ================================================
+   Badge & Tags - バッジとタグ
+   ================================================ */
+.badge {
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+}
+
+/* Prompt Preset Buttons */
+.prompt-preset-btn {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: var(--transition-base);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.prompt-preset-btn:hover {
+    background-color: var(--accent-lighter);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+.prompt-preset-btn.active {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+/* ================================================
+   Toast Notifications - 通知トースト
+   ================================================ */
+.toast-container .toast {
+    min-width: 280px;
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-lg);
+}
+
+.toast-header {
+    background-color: var(--bg-primary);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.toast-body {
+    background-color: var(--bg-primary);
+}
+
+/* ================================================
+   Progress Bar - 進捗バー
+   ================================================ */
+.progress {
+    background-color: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: var(--accent-color);
+    transition: width 0.6s ease;
+}
+
+/* ================================================
+   Alert Styles - アラート
+   ================================================ */
+.alert {
+    border-radius: 0.75rem;
+    border: none;
+    padding: 1rem 1.25rem;
+}
+
+.alert-danger {
+    background-color: var(--danger-bg);
+    color: var(--danger-text);
+}
+
+.alert-success {
+    background-color: var(--success-bg);
+    color: var(--success-text);
+}
+
+.alert-info {
+    background-color: var(--accent-lighter);
+    color: var(--processing-text);
+}
+
+/* ================================================
+   Usage Summary - 利用状況表示
+   ================================================ */
 #usage-summary {
     min-width: 200px;
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
-.toast-container .toast {
-    min-width: 240px;
+/* ================================================
+   Utility Classes - ユーティリティクラス
+   ================================================ */
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+.text-secondary {
+    color: var(--text-secondary) !important;
+}
+
+.border {
+    border-color: var(--border-color) !important;
+}
+
+.rounded {
+    border-radius: 0.5rem !important;
+}
+
+.shadow-sm {
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.shadow-md {
+    box-shadow: var(--shadow-md) !important;
+}
+
+.shadow-lg {
+    box-shadow: var(--shadow-lg) !important;
+}
+
+/* ================================================
+   Responsive Design - レスポンシブ対応
+   ================================================ */
+@media (max-width: 991.98px) {
+    .drop-zone {
+        padding: 2rem 1rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+    }
 }
 
 @media (max-width: 767.98px) {
@@ -47,6 +450,17 @@
     #usage-summary {
         min-width: 0;
         text-align: center;
+        font-size: 0.75rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 1rem;
     }
 }
 
@@ -61,4 +475,123 @@
         right: 0;
         padding: 1rem;
     }
+
+    .toast-container .toast {
+        min-width: 100%;
+    }
+
+    .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+
+    h2.h4 {
+        font-size: 1.25rem;
+    }
+}
+
+/* ================================================
+   Navigation Styles - ナビゲーション
+   ================================================ */
+.navbar-light {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.navbar-brand {
+    font-size: 1.375rem;
+    letter-spacing: -0.02em;
+    transition: var(--transition-base);
+}
+
+.navbar-brand:hover {
+    opacity: 0.85;
+}
+
+.navbar-light .nav-link {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    transition: var(--transition-base);
+}
+
+.navbar-light .nav-link:hover {
+    color: var(--accent-color);
+    background-color: var(--accent-lighter);
+}
+
+.navbar-light .nav-link.active {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+/* ================================================
+   Dark Elements - ダークテーマ要素（非推奨）
+   ================================================ */
+.navbar-dark,
+.bg-dark {
+    background-color: #1F2937 !important;
+}
+
+.navbar-dark .navbar-brand {
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: white !important;
+}
+
+.navbar-dark .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: 500;
+    transition: var(--transition-base);
+}
+
+.navbar-dark .nav-link:hover {
+    color: var(--accent-light) !important;
+}
+
+footer.bg-dark {
+    background-color: #111827 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ================================================
+   Footer Styles - フッター
+   ================================================ */
+footer {
+    margin-top: 4rem;
+}
+
+footer .border-top {
+    border-color: var(--border-light) !important;
+}
+
+/* ================================================
+   Animation & Effects - アニメーションとエフェクト
+   ================================================ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Smooth Transitions */
+* {
+    transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+    transition-duration: 0.2s;
+    transition-timing-function: ease;
+}
+
+/* Focus Visible */
+*:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
 }
