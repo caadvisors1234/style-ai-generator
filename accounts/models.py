@@ -33,11 +33,6 @@ class UserProfile(models.Model):
         verbose_name='当月利用済み回数',
         help_text='当月に既に生成した画像の枚数'
     )
-    is_deleted = models.BooleanField(
-        default=False,
-        verbose_name='アカウント停止',
-        help_text='チェックを入れるとアカウントが停止されます'
-    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='作成日時'
@@ -53,9 +48,6 @@ class UserProfile(models.Model):
         verbose_name = 'ユーザープロファイル'
         verbose_name_plural = 'ユーザープロファイル'
         ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['is_deleted', 'created_at']),
-        ]
 
     def __str__(self):
         return f'{self.user.username} Profile'
@@ -106,29 +98,7 @@ class UserProfile(models.Model):
             cache.delete(f'usage_history:{self.user_id}:{months}')
 
     def save(self, *args, **kwargs):
-        # is_deletedの変更をUser.is_activeに反映
-        update_user_active = False
-        if self.pk:  # 既存のレコードの場合
-            try:
-                old_instance = UserProfile.objects.get(pk=self.pk)
-                if old_instance.is_deleted != self.is_deleted:
-                    # is_deletedが変更された場合、User.is_activeを同期
-                    update_user_active = True
-            except UserProfile.DoesNotExist:
-                pass
-        else:  # 新規作成の場合
-            # is_deletedがTrueなら、User.is_activeをFalseに設定
-            if self.is_deleted:
-                update_user_active = True
-
-        # UserProfile本体を保存
         super().save(*args, **kwargs)
-
-        # User.is_activeを更新（シグナルの無限ループを防ぐため、保存後に実行）
-        if update_user_active:
-            # シグナルを発火させずにUserを更新
-            User.objects.filter(pk=self.user_id).update(is_active=not self.is_deleted)
-
         self.invalidate_usage_cache()
 
 

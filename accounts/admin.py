@@ -22,9 +22,6 @@ class UserProfileInline(admin.StackedInline):
         ('利用制限', {
             'fields': ('monthly_limit', 'monthly_used', 'remaining_display')
         }),
-        ('アカウント状態', {
-            'fields': ('is_deleted',)
-        }),
         ('タイムスタンプ', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
@@ -56,7 +53,7 @@ class CustomUserAdmin(BaseUserAdmin):
     inlines = (UserProfileInline,)
 
     list_display = ('username', 'email', 'first_name', 'last_name',
-                   'is_staff', 'monthly_usage_display', 'date_joined')
+                   'is_staff', 'is_active', 'monthly_usage_display', 'date_joined')
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
 
     # パスワード変更リンクを含むreadonly_fields
@@ -72,6 +69,7 @@ class CustomUserAdmin(BaseUserAdmin):
         }),
         ('権限', {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+            'description': 'is_active: チェックを外すとアカウントが停止されログインできなくなります'
         }),
         ('重要な日付', {
             'fields': ('last_login', 'date_joined')
@@ -129,8 +127,8 @@ class UserProfileAdmin(admin.ModelAdmin):
     """ユーザープロフィール管理"""
 
     list_display = ('user_username', 'monthly_limit', 'monthly_used',
-                   'remaining_display', 'is_deleted', 'created_at')
-    list_filter = ('is_deleted', 'created_at', 'monthly_limit')
+                   'remaining_display', 'created_at')
+    list_filter = ('created_at', 'monthly_limit')
     search_fields = ('user__username', 'user__email')
     readonly_fields = ('remaining_display', 'created_at', 'updated_at')
 
@@ -141,16 +139,13 @@ class UserProfileAdmin(admin.ModelAdmin):
         ('利用制限', {
             'fields': ('monthly_limit', 'monthly_used', 'remaining_display')
         }),
-        ('アカウント状態', {
-            'fields': ('is_deleted',)
-        }),
         ('タイムスタンプ', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
 
-    actions = ['reset_monthly_usage', 'set_deleted', 'set_active']
+    actions = ['reset_monthly_usage']
 
     def user_username(self, obj):
         """ユーザー名の表示"""
@@ -176,30 +171,4 @@ class UserProfileAdmin(admin.ModelAdmin):
         self.message_user(
             request,
             f'{updated}件のユーザーの月次利用回数をリセットしました。'
-        )
-
-    @admin.action(description='選択したユーザーのアカウントを停止する')
-    def set_deleted(self, request, queryset):
-        """アカウント停止"""
-        count = 0
-        for profile in queryset:
-            profile.is_deleted = True
-            profile.save()  # saveメソッドでUser.is_activeも自動的に更新される
-            count += 1
-        self.message_user(
-            request,
-            f'{count}件のユーザーのアカウントを停止しました。'
-        )
-
-    @admin.action(description='選択したユーザーのアカウント停止を解除する')
-    def set_active(self, request, queryset):
-        """アカウント停止解除"""
-        count = 0
-        for profile in queryset:
-            profile.is_deleted = False
-            profile.save()  # saveメソッドでUser.is_activeも自動的に更新される
-            count += 1
-        self.message_user(
-            request,
-            f'{count}件のユーザーのアカウント停止を解除しました。'
         )
