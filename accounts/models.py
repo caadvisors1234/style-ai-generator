@@ -35,8 +35,8 @@ class UserProfile(models.Model):
     )
     is_deleted = models.BooleanField(
         default=False,
-        verbose_name='削除フラグ',
-        help_text='論理削除フラグ'
+        verbose_name='アカウント停止',
+        help_text='チェックを入れるとアカウントが停止されます'
     )
     created_at = models.DateTimeField(
         auto_now_add=True,

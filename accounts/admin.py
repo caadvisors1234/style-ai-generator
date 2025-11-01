@@ -22,7 +22,7 @@ class UserProfileInline(admin.StackedInline):
         ('利用制限', {
             'fields': ('monthly_limit', 'monthly_used', 'remaining_display')
         }),
-        ('ステータス', {
+        ('アカウント状態', {
             'fields': ('is_deleted',)
         }),
         ('タイムスタンプ', {
@@ -141,7 +141,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         ('利用制限', {
             'fields': ('monthly_limit', 'monthly_used', 'remaining_display')
         }),
-        ('ステータス', {
+        ('アカウント状態', {
             'fields': ('is_deleted',)
         }),
         ('タイムスタンプ', {
@@ -178,20 +178,20 @@ class UserProfileAdmin(admin.ModelAdmin):
             f'{updated}件のユーザーの月次利用回数をリセットしました。'
         )
 
-    @admin.action(description='選択したユーザーを削除済みにする')
+    @admin.action(description='選択したユーザーのアカウントを停止する')
     def set_deleted(self, request, queryset):
-        """論理削除"""
+        """アカウント停止"""
         updated = queryset.update(is_deleted=True)
         self.message_user(
             request,
-            f'{updated}件のユーザーを削除済みにしました。'
+            f'{updated}件のユーザーのアカウントを停止しました。'
         )
 
-    @admin.action(description='選択したユーザーを有効にする')
+    @admin.action(description='選択したユーザーのアカウント停止を解除する')
     def set_active(self, request, queryset):
-        """有効化"""
+        """アカウント停止解除"""
         updated = queryset.update(is_deleted=False)
         self.message_user(
             request,
-            f'{updated}件のユーザーを有効にしました。'
+            f'{updated}件のユーザーのアカウント停止を解除しました。'
         )
