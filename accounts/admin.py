@@ -181,17 +181,25 @@ class UserProfileAdmin(admin.ModelAdmin):
     @admin.action(description='選択したユーザーのアカウントを停止する')
     def set_deleted(self, request, queryset):
         """アカウント停止"""
-        updated = queryset.update(is_deleted=True)
+        count = 0
+        for profile in queryset:
+            profile.is_deleted = True
+            profile.save()  # saveメソッドでUser.is_activeも自動的に更新される
+            count += 1
         self.message_user(
             request,
-            f'{updated}件のユーザーのアカウントを停止しました。'
+            f'{count}件のユーザーのアカウントを停止しました。'
         )
 
     @admin.action(description='選択したユーザーのアカウント停止を解除する')
     def set_active(self, request, queryset):
         """アカウント停止解除"""
-        updated = queryset.update(is_deleted=False)
+        count = 0
+        for profile in queryset:
+            profile.is_deleted = False
+            profile.save()  # saveメソッドでUser.is_activeも自動的に更新される
+            count += 1
         self.message_user(
             request,
-            f'{updated}件のユーザーのアカウント停止を解除しました。'
+            f'{count}件のユーザーのアカウント停止を解除しました。'
         )
