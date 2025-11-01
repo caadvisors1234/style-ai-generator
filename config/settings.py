@@ -35,6 +35,9 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    # Admin UI theme (must be before django.contrib.admin)
+    'jazzmin',
+
     # Django channels (must be before django.contrib.staticfiles)
     'daphne',
 
@@ -294,4 +297,125 @@ LOGGING = {
             'propagate': False,
         },
     },
+}
+
+
+# ================================================
+# Jazzmin Settings - Admin UI Theme
+# ================================================
+JAZZMIN_SETTINGS = {
+    # タイトル設定
+    "site_title": "Style AI Generator Admin",
+    "site_header": "Style AI Generator",
+    "site_brand": "Style AI Generator",
+    "site_logo": None,
+    "login_logo": None,
+    "site_logo_classes": "img-circle",
+    "site_icon": None,
+
+    # ウェルカムサイン
+    "welcome_sign": "Style AI Generator 管理画面へようこそ",
+
+    # Copyright
+    "copyright": "Style AI Generator",
+
+    # 検索モデル
+    "search_model": ["auth.User", "images.ImageConversion", "images.GeneratedImage"],
+
+    # ユーザーアバター
+    "user_avatar": None,
+
+    # トップメニュー
+    "topmenu_links": [
+        {"name": "ホーム", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "フロントエンドへ", "url": "/", "new_window": True},
+    ],
+
+    # ユーザーメニューリンク
+    "usermenu_links": [
+        {"model": "auth.user"}
+    ],
+
+    # サイドバー設定
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+    "order_with_respect_to": ["auth", "accounts", "images"],
+
+    # アイコン設定（Font Awesome）
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "accounts.UserProfile": "fas fa-user-circle",
+        "images.ImageConversion": "fas fa-image",
+        "images.GeneratedImage": "fas fa-images",
+        "images.PromptPreset": "fas fa-palette",
+    },
+
+    # デフォルトアイコン
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+
+    # 関連モーダル
+    "related_modal_active": False,
+
+    # カスタムCSS/JS
+    "custom_css": None,
+    "custom_js": None,
+
+    # カスタムリンクは表示しない
+    "show_ui_builder": False,
+
+    # 変更フォームテンプレート
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {
+        "auth.user": "collapsible",
+        "auth.group": "vertical_tabs",
+    },
+
+    # 言語チューザー
+    "language_chooser": False,
+}
+
+# Jazzmin UI Tweaks - デザインコンセプト「フォーカスと透明性」に合わせた設定
+JAZZMIN_UI_TWEAKS = {
+    # ナビゲーションバー
+    "navbar_small_text": False,
+    "footer_small_text": False,
+
+    # ボディのデザイン
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": False,
+
+    # アクセントカラー（フロントエンドと統一）
+    "accent": "accent-pink",
+
+    # サイドバーのデザイン
+    "sidebar": "sidebar-light-pink",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+
+    # テーマカラー（モノクロームベース）
+    "theme": "flatly",
+    "dark_mode_theme": None,
+
+    # ボタンのクラス
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    },
+
+    # アクション
+    "actions_sticky_top": False,
 }

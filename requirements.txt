@@ -26,6 +26,9 @@ google-genai>=0.3.0
 # API & Web
 gunicorn>=21.0.0
 
+# Admin UI Theme
+django-jazzmin>=3.0.0
+
 # Development Tools (optional)
 django-extensions>=3.2.0
 ipython>=8.0.0
