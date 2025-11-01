@@ -4,13 +4,11 @@
 import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 from images.services.upload import ImageUploadService, UploadValidationError
 from api.decorators import login_required_api
 
 
 @require_http_methods(["POST"])
-@csrf_exempt
 @login_required_api
 def upload_images(request):
     """
@@ -86,7 +84,6 @@ def upload_images(request):
 
 
 @require_http_methods(["DELETE"])
-@csrf_exempt
 @login_required_api
 def delete_upload(request):
     """
@@ -152,7 +149,6 @@ def delete_upload(request):
 
 
 @require_http_methods(["POST"])
-@csrf_exempt
 @login_required_api
 def validate_upload(request):
     """

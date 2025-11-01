@@ -5,7 +5,6 @@ import json
 import os
 from django.http import JsonResponse, FileResponse, Http404
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 from django.core.paginator import Paginator
 from django.conf import settings
 from django.db.models import Q, Prefetch
@@ -215,7 +214,6 @@ def gallery_detail(request, conversion_id):
 
 
 @require_http_methods(["DELETE"])
-@csrf_exempt
 @login_required_api
 def gallery_delete(request, conversion_id):
     """
@@ -330,7 +328,6 @@ def image_detail(request, image_id):
 
 
 @require_http_methods(["DELETE"])
-@csrf_exempt
 @login_required_api
 def image_delete(request, image_id):
     """
@@ -432,7 +429,6 @@ def image_download(request, image_id):
 
 
 @require_http_methods(["PATCH"])
-@csrf_exempt
 @login_required_api
 def image_brightness(request, image_id):
     """

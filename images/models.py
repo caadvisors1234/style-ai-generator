@@ -349,17 +349,3 @@ class PromptPreset(models.Model):
 
     def __str__(self):
         return f'{self.name} ({self.get_category_display()})'
-ASPECT_RATIO_CHOICES = [
-    ('1:1', '1:1'),
-    ('3:4', '3:4'),
-    ('4:3', '4:3'),
-    ('9:16', '9:16'),
-    ('16:9', '16:9'),
-    ('3:2', '3:2'),
-    ('2:3', '2:3'),
-    ('21:9', '21:9'),
-    ('9:21', '9:21'),
-    ('4:5', '4:5'),
-]
-
-DEFAULT_ASPECT_RATIO = '4:3'

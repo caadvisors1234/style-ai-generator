@@ -5,17 +5,15 @@
 """
 
 import logging
-import json
-import os
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
-from django.conf import settings
 from django.db import transaction
 from api.decorators import login_required_api
 
 from images.models import ImageConversion, GeneratedImage
 from images.tasks import process_image_conversion
 from images.services.gemini_image_api import GeminiImageAPIService
+from images.services.upload import ImageUploadService, UploadValidationError
 
 
 logger = logging.getLogger(__name__)
@@ -85,23 +83,6 @@ def convert_start(request):
                 'message': '画像比率がサポート対象外です'
             }, status=400)
 
-        # ファイルサイズチェック（10MB）
-        max_size = 10 * 1024 * 1024
-        if image_file.size > max_size:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'ファイルサイズは10MB以下にしてください'
-            }, status=400)
-
-        # ファイル形式チェック
-        allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp']
-        file_ext = os.path.splitext(image_file.name)[1].lower()
-        if file_ext not in allowed_extensions:
-            return JsonResponse({
-                'status': 'error',
-                'message': '対応している形式はJPEG、PNG、WebPです'
-            }, status=400)
-
         # 月次利用制限チェック
         if not profile.can_generate(generation_count):
             return JsonResponse({
@@ -109,27 +90,35 @@ def convert_start(request):
                 'message': f'月次利用上限に達しています（残り: {profile.remaining}枚）'
             }, status=403)
 
+        upload_service = ImageUploadService(user_id=request.user.id)
+
+        try:
+            upload_results = upload_service.process_uploads([image_file])
+        except UploadValidationError as upload_error:
+            error_payload = upload_error.args[0] if upload_error.args else str(upload_error)
+            response_data = {'status': 'error'}
+            if isinstance(error_payload, dict):
+                response_data.update(error_payload)
+                response_data.setdefault('message', 'アップロード処理中にエラーが発生しました')
+            else:
+                response_data['message'] = str(upload_error)
+            return JsonResponse(response_data, status=400)
+
+        if not upload_results:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'アップロード処理に失敗しました'
+            }, status=400)
+
+        upload_result = upload_results[0]
+
         with transaction.atomic():
-            # ファイル保存
-            import uuid
-            filename = f"{uuid.uuid4()}{file_ext}"
-            relative_path = f"uploads/user_{request.user.id}/{filename}"
-
-            # ディレクトリ作成
-            file_path = os.path.join(settings.MEDIA_ROOT, relative_path)
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-            # ファイル保存
-            with open(file_path, 'wb+') as destination:
-                for chunk in image_file.chunks():
-                    destination.write(chunk)
-
             # ImageConversionレコード作成
             conversion = ImageConversion.objects.create(
                 user=request.user,
-                original_image_path=relative_path,
-                original_image_name=image_file.name,
-                original_image_size=image_file.size,
+                original_image_path=upload_result['file_path'],
+                original_image_name=upload_result['file_name'],
+                original_image_size=upload_result['file_size'],
                 prompt=prompt,
                 generation_count=generation_count,
                 aspect_ratio=aspect_ratio,

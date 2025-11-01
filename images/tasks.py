@@ -14,6 +14,8 @@ from decimal import Decimal
 
 from celery import shared_task
 from django.conf import settings
+from django.db.models import F, Value
+from django.db.models.functions import Greatest
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
@@ -184,6 +186,31 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
         # ステータスを失敗に更新
         try:
             conversion = ImageConversion.objects.get(id=conversion_id)
+            try:
+                profile = conversion.user.profile
+                profile_model = profile.__class__
+                updated = profile_model.objects.filter(pk=profile.pk).update(
+                    monthly_used=Greatest(
+                        F('monthly_used') - conversion.generation_count,
+                        Value(0),
+                    )
+                )
+                if not updated:
+                    raise ValueError("No rows updated during usage rollback")
+                profile.refresh_from_db(fields=['monthly_used'])
+                if hasattr(profile, "invalidate_usage_cache"):
+                    profile.invalidate_usage_cache()
+                logger.info(
+                    "Rolled back usage for user %s by %s",
+                    profile.user_id,
+                    conversion.generation_count,
+                )
+            except Exception as rollback_error:
+                logger.error(
+                    "Failed to rollback usage count for conversion %s: %s",
+                    conversion_id,
+                    rollback_error,
+                )
             conversion.mark_as_failed(error_msg)
         except Exception as update_error:
             logger.error(f"Failed to update conversion status: {update_error}")
@@ -212,6 +239,31 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
         # 最大リトライ回数を超えた場合
         try:
             conversion = ImageConversion.objects.get(id=conversion_id)
+            try:
+                profile = conversion.user.profile
+                profile_model = profile.__class__
+                updated = profile_model.objects.filter(pk=profile.pk).update(
+                    monthly_used=Greatest(
+                        F('monthly_used') - conversion.generation_count,
+                        Value(0),
+                    )
+                )
+                if not updated:
+                    raise ValueError("No rows updated during usage rollback")
+                profile.refresh_from_db(fields=['monthly_used'])
+                if hasattr(profile, "invalidate_usage_cache"):
+                    profile.invalidate_usage_cache()
+                logger.info(
+                    "Rolled back usage for user %s by %s",
+                    profile.user_id,
+                    conversion.generation_count,
+                )
+            except Exception as rollback_error:
+                logger.error(
+                    "Failed to rollback usage count for conversion %s: %s",
+                    conversion_id,
+                    rollback_error,
+                )
             conversion.mark_as_failed(error_msg)
         except Exception as update_error:
             logger.error(f"Failed to update conversion status: {update_error}")
