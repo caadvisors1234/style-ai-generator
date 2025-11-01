@@ -4,9 +4,9 @@
 {% block title %}ギャラリー - Style AI Generator{% endblock %}
 
 {% block content %}
-<section class="mb-5">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h2 class="h4 mb-0 fw-bold">生成画像ギャラリー</h2>
+<section style="margin-bottom: 4rem;">
+    <div class="d-flex align-items-center justify-content-between" style="margin-bottom: 2rem;">
+        <h2 class="mb-0">生成画像ギャラリー</h2>
         <a class="btn btn-outline-secondary btn-sm" href="{% url 'frontend:main' %}">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload me-1" viewBox="0 0 16 16">
                 <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
@@ -15,22 +15,22 @@
             アップロードへ戻る
         </a>
     </div>
-    <div class="card border-0 shadow-sm mb-4">
+    <div class="card" style="margin-bottom: 2rem;">
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-md-4">
-                    <label for="gallery-search" class="form-label fw-semibold small">検索</label>
+                    <label for="gallery-search" class="form-label small">検索</label>
                     <input type="search" class="form-control" id="gallery-search" placeholder="プロンプトで検索">
                 </div>
                 <div class="col-md-3">
-                    <label for="gallery-sort" class="form-label fw-semibold small">並び替え</label>
+                    <label for="gallery-sort" class="form-label small">並び替え</label>
                     <select id="gallery-sort" class="form-select">
                         <option value="created_at_desc">新しい順</option>
                         <option value="created_at_asc">古い順</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label for="gallery-per-page" class="form-label fw-semibold small">表示件数</label>
+                    <label for="gallery-per-page" class="form-label small">表示件数</label>
                     <select id="gallery-per-page" class="form-select">
                         <option value="12">12件</option>
                         <option value="24">24件</option>
@@ -45,14 +45,14 @@
 <section>
     <div id="gallery-empty" class="alert alert-info d-none">まだ生成した画像がありません。アップロードから変換を開始してください。</div>
     <div id="gallery-grid" class="row g-3"></div>
-    <nav aria-label="ページネーション" class="mt-4">
+    <nav aria-label="ページネーション" style="margin-top: 2rem;">
         <ul class="pagination justify-content-center" id="gallery-pagination"></ul>
     </nav>
 </section>
 
 <template id="gallery-card-template">
     <div class="col-lg-3 col-md-4 col-sm-6">
-        <div class="card h-100 shadow-sm gallery-card">
+        <div class="card h-100 gallery-card">
             <img src="" class="card-img-top gallery-thumb" alt="">
             <div class="card-body">
                 <h5 class="card-title small gallery-title"></h5>

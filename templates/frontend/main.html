@@ -4,9 +4,9 @@
 {% block title %}アップロード - Style AI Generator{% endblock %}
 
 {% block content %}
-<section class="mb-5">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h2 class="h4 mb-0 fw-bold">画像アップロード</h2>
+<section style="margin-bottom: 4rem;">
+    <div class="d-flex align-items-center justify-content-between" style="margin-bottom: 2rem;">
+        <h2 class="mb-0">画像アップロード</h2>
         <a class="btn btn-outline-secondary btn-sm" href="{% url 'frontend:gallery' %}">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-images me-1" viewBox="0 0 16 16">
                 <path d="M4.502 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
@@ -15,38 +15,38 @@
             ギャラリーを見る
         </a>
     </div>
-    <div id="drop-zone" class="drop-zone mb-3">
+    <div id="drop-zone" class="drop-zone" style="margin-bottom: 2rem;">
         <div class="text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-cloud-arrow-up mb-3 text-brand" viewBox="0 0 16 16">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="text-muted" style="margin-bottom: 1.5rem;" viewBox="0 0 16 16">
                 <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
                 <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
             </svg>
-            <p class="fw-semibold mb-2" style="font-size: 1.125rem;">ここに画像をドラッグ＆ドロップ</p>
-            <p class="text-secondary small mb-3">または</p>
+            <p class="mb-2" style="font-size: 1rem; font-weight: 500;">ここに画像をドラッグ＆ドロップ</p>
+            <p class="text-secondary small" style="margin-bottom: 1.5rem;">または</p>
             <button class="btn btn-primary" id="file-picker-button" type="button">ファイルを選択</button>
             <input type="file" id="file-input" accept="image/*" multiple hidden>
-            <p class="text-muted small mt-3 mb-0">JPEG / PNG / WebP、最大10枚、1枚あたり10MBまで</p>
+            <p class="text-muted small mb-0" style="margin-top: 1.5rem;">JPEG / PNG / WebP、最大10枚、1枚あたり10MBまで</p>
         </div>
     </div>
     <div id="upload-errors" class="alert alert-danger d-none"></div>
     <div id="uploaded-list" class="row g-3"></div>
 </section>
 
-<section class="mt-5">
-    <h2 class="h4 mb-4 fw-bold">変換設定</h2>
-    <div class="mb-4">
-        <label class="form-label fw-semibold">プリセットプロンプト</label>
+<section style="margin-top: 4rem;">
+    <h2 style="margin-bottom: 2rem;">変換設定</h2>
+    <div style="margin-bottom: 2rem;">
+        <label class="form-label">プリセットプロンプト</label>
         <div class="d-flex flex-wrap gap-2" id="prompt-preset-container">
             <span class="text-muted small">読み込み中...</span>
         </div>
     </div>
-    <div class="mb-4">
-        <label for="custom-prompt" class="form-label fw-semibold">カスタムプロンプト</label>
+    <div style="margin-bottom: 2rem;">
+        <label for="custom-prompt" class="form-label">カスタムプロンプト</label>
         <textarea id="custom-prompt" class="form-control" rows="4" placeholder="変換内容を具体的に記述してください"></textarea>
     </div>
-    <div class="row g-3 mb-4">
+    <div class="row g-3" style="margin-bottom: 2rem;">
         <div class="col-md-3">
-            <label for="generation-count" class="form-label fw-semibold">生成枚数</label>
+            <label for="generation-count" class="form-label">生成枚数</label>
             <select id="generation-count" class="form-select">
                 <option value="1" selected>1枚</option>
                 <option value="2">2枚</option>
@@ -56,7 +56,7 @@
             </select>
         </div>
         <div class="col-md-3">
-            <label for="aspect-ratio" class="form-label fw-semibold">画像比率</label>
+            <label for="aspect-ratio" class="form-label">画像比率</label>
             <select id="aspect-ratio" class="form-select">
                 <option value="1:1">1:1（スクエア）</option>
                 <option value="3:4" selected>3:4（ポートレート）</option>
@@ -71,11 +71,8 @@
             </select>
         </div>
     </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-primary btn-lg px-4" id="start-conversion" type="button" disabled>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-magic me-2" viewBox="0 0 16 16">
-                <path d="M9.5 2.672a.5.5 0 1 0 1 0V.843a.5.5 0 0 0-1 0v1.829Zm4.5.035A.5.5 0 0 0 13.293 2L12 3.293a.5.5 0 1 0 .707.707L14 2.707ZM7.293 4A.5.5 0 1 0 8 3.293L6.707 2A.5.5 0 0 0 6 2.707L7.293 4Zm-.621 2.5a.5.5 0 1 0 0-1H4.843a.5.5 0 1 0 0 1h1.829Zm8.485 0a.5.5 0 1 0 0-1h-1.829a.5.5 0 0 0 0 1h1.829ZM13.293 10A.5.5 0 1 0 14 9.293L12.707 8a.5.5 0 1 0-.707.707L13.293 10ZM9.5 11.157a.5.5 0 0 0 1 0V9.328a.5.5 0 0 0-1 0v1.829Zm1.854-5.097a.5.5 0 0 0 0-.706l-.708-.708a.5.5 0 0 0-.707 0L8.646 5.94a.5.5 0 0 0 0 .707l.708.708a.5.5 0 0 0 .707 0l1.293-1.293Zm-3 3a.5.5 0 0 0 0-.706l-.708-.708a.5.5 0 0 0-.707 0L.646 13.94a.5.5 0 0 0 0 .707l.708.708a.5.5 0 0 0 .707 0L8.354 9.06Z"/>
-            </svg>
+    <div>
+        <button class="btn btn-primary btn-lg" id="start-conversion" type="button" disabled style="padding: 0.75rem 2rem;">
             変換を開始
         </button>
     </div>
@@ -83,7 +80,7 @@
 
 <template id="uploaded-item-template">
     <div class="col-md-4">
-        <div class="card h-100 shadow-sm">
+        <div class="card h-100">
             <img src="" class="card-img-top uploaded-thumb" alt="">
             <div class="card-body">
                 <h5 class="card-title small uploaded-name"></h5>

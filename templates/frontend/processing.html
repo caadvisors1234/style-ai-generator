@@ -4,15 +4,13 @@
 {% block title %}変換進行中 - Style AI Generator{% endblock %}
 
 {% block content %}
-<section class="text-center" data-conversion-id="{{ conversion_id|default:'' }}" id="conversion-progress">
-    <h2 class="h4 mb-3">画像変換を実行中...</h2>
-    <p class="text-muted" id="progress-message">初期化しています</p>
-    <div class="progress mb-3" style="height: 1.5rem;">
-        <div class="progress-bar progress-bar-striped progress-bar-animated" id="progress-bar" role="progressbar" style="width: 10%;" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100">
-            10%
-        </div>
+<section class="text-center" data-conversion-id="{{ conversion_id|default:'' }}" id="conversion-progress" style="max-width: 600px; margin: 4rem auto;">
+    <h2 style="margin-bottom: 1.5rem;">画像変換を実行中...</h2>
+    <p class="text-muted" id="progress-message" style="margin-bottom: 2rem;">初期化しています</p>
+    <div class="progress" style="height: 0.75rem; margin-bottom: 1.5rem;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" id="progress-bar" role="progressbar" style="width: 10%;" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100"></div>
     </div>
-    <div class="mb-4" id="progress-counter">0 / 0 枚</div>
+    <div style="margin-bottom: 2rem; font-size: var(--font-size-base); font-weight: 500;" id="progress-counter">0 / 0 枚</div>
     <button class="btn btn-outline-danger" id="cancel-conversion" type="button">変換をキャンセル</button>
 </section>
 {% endblock %}

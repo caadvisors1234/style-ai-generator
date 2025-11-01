@@ -4,20 +4,18 @@
 {% block title %}複数画像変換進行中 - Style AI Generator{% endblock %}
 
 {% block content %}
-<section class="text-center" id="multiple-conversion-progress">
-    <h2 class="h4 mb-4">画像変換を実行中...</h2>
-    <p class="text-muted mb-4" id="overall-message">全ての変換が完了するまでお待ちください</p>
+<section class="text-center" id="multiple-conversion-progress" style="max-width: 1200px; margin: 4rem auto;">
+    <h2 style="margin-bottom: 1.5rem;">画像変換を実行中...</h2>
+    <p class="text-muted" id="overall-message" style="margin-bottom: 3rem;">全ての変換が完了するまでお待ちください</p>
 
     <!-- 全体の進捗 -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <h5 class="card-title mb-3">全体の進捗</h5>
-            <div class="progress mb-3" style="height: 2rem;">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" id="overall-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                    0%
-                </div>
+    <div class="card" style="margin-bottom: 3rem;">
+        <div class="card-body" style="padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem; font-size: var(--font-size-medium);">全体の進捗</h3>
+            <div class="progress" style="height: 0.75rem; margin-bottom: 1.5rem;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" id="overall-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
-            <div id="overall-counter" class="h5 mb-0">0 / 0 件完了</div>
+            <div id="overall-counter" style="font-size: var(--font-size-medium); font-weight: 500; margin-bottom: 0;">0 / 0 件完了</div>
         </div>
     </div>
 
@@ -27,18 +25,16 @@
     <!-- テンプレート -->
     <template id="conversion-item-template">
         <div class="col-md-6 col-lg-4">
-            <div class="card h-100 border-0 shadow-sm conversion-card">
+            <div class="card h-100 conversion-card">
                 <div class="card-body">
-                    <h6 class="card-title conversion-title">変換 #1</h6>
-                    <p class="card-text small text-muted conversion-prompt">プロンプト...</p>
-                    <div class="progress mb-2" style="height: 1.25rem;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated conversion-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                            0%
-                        </div>
+                    <h4 class="card-title conversion-title" style="font-size: var(--font-size-base); margin-bottom: 0.75rem;">変換 #1</h4>
+                    <p class="card-text small text-muted conversion-prompt" style="margin-bottom: 1rem;">プロンプト...</p>
+                    <div class="progress" style="height: 0.5rem; margin-bottom: 1rem;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated conversion-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
-                    <div class="conversion-status small">
+                    <div class="conversion-status small" style="display: flex; align-items: center; gap: 0.5rem;">
                         <span class="badge bg-secondary conversion-status-badge">待機中</span>
-                        <span class="conversion-counter ms-2">0 / 0 枚</span>
+                        <span class="conversion-counter">0 / 0 枚</span>
                     </div>
                 </div>
             </div>

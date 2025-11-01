@@ -10,23 +10,23 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold text-brand" href="{% url 'frontend:main' %}">Style AI Generator</a>
+            <a class="navbar-brand text-brand" href="{% url 'frontend:main' %}">Style AI Generator</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link fw-medium" href="{% url 'frontend:main' %}">アップロード</a>
+                        <a class="nav-link" href="{% url 'frontend:main' %}">アップロード</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link fw-medium" href="{% url 'frontend:gallery' %}">ギャラリー</a>
+                        <a class="nav-link" href="{% url 'frontend:gallery' %}">ギャラリー</a>
                     </li>
                 </ul>
                 <div class="d-flex align-items-center gap-3">
-                    <div class="text-secondary small fw-medium" id="usage-summary">
+                    <div class="text-secondary small" id="usage-summary">
                         利用状況を取得しています...
                     </div>
                     <button class="btn btn-outline-secondary btn-sm" id="logout-button" type="button">
@@ -37,13 +37,13 @@
         </div>
     </nav>
 
-    <main class="container mb-5">
+    <main class="container">
         {% block content %}{% endblock %}
     </main>
 
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container"></div>
 
-    <footer class="bg-white border-top py-4 mt-auto">
+    <footer class="bg-white border-top mt-auto" style="padding: 2rem 0;">
         <div class="container small d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
             <span class="text-secondary">&copy; {% now "Y" %} Style AI Generator</span>
             <span class="text-muted">Powered by Vertex AI Gemini 2.5 Flash Image</span>
