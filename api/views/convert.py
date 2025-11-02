@@ -5,11 +5,18 @@
 """
 
 import logging
-from django.views.decorators.http import require_http_methods
-from django.http import JsonResponse
+import os
+
+from django.conf import settings
 from django.db import transaction
+from django.db.models import F, Value
+from django.db.models.functions import Greatest
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+
 from api.decorators import login_required_api
 
+from accounts.models import UserProfile
 from images.models import ImageConversion, GeneratedImage
 from images.tasks import process_image_conversion
 from images.services.gemini_image_api import GeminiImageAPIService
@@ -290,33 +297,89 @@ def convert_cancel(request, conversion_id):
         }
     """
     try:
-        # 権限チェック（自分の変換のみ）
-        conversion = ImageConversion.objects.filter(
-            id=conversion_id,
-            user=request.user,
-            is_deleted=False
-        ).first()
+        with transaction.atomic():
+            conversion = (
+                ImageConversion.objects.select_for_update()
+                .select_related('user')
+                .filter(
+                    id=conversion_id,
+                    user=request.user,
+                    is_deleted=False,
+                )
+                .first()
+            )
 
-        if not conversion:
-            return JsonResponse({
-                'status': 'error',
-                'message': '変換データが見つかりません'
-            }, status=404)
+            if not conversion:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': '変換データが見つかりません'
+                }, status=404)
 
-        # キャンセル可能なステータスチェック
-        if conversion.status not in ['pending', 'processing']:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'この変換はキャンセルできません'
-            }, status=400)
+            if conversion.status == 'cancelled':
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'この変換は既にキャンセルされています',
+                    'result': 'already_cancelled'
+                })
 
-        # ステータス更新
-        conversion.mark_as_cancelled()
+            if conversion.status in ['completed', 'failed']:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'この変換は既に処理済みです',
+                    'result': 'already_finished'
+                })
 
-        # Celeryタスクは自動的に停止を検知する仕組みが必要
-        # （現在の実装では、タスク内でステータスをチェックする必要がある）
+            # キャンセル可能なステータスチェック
+            if conversion.status not in ['pending', 'processing']:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'この変換はキャンセルできません'
+                }, status=400)
 
-        logger.info(f"Conversion cancelled: conversion_id={conversion_id}")
+            conversion.mark_as_cancelled()
+
+            # 利用枚数をロールバック
+            profile = None
+            try:
+                profile = conversion.user.profile
+            except UserProfile.DoesNotExist:
+                profile = None
+
+            if profile:
+                profile_model = profile.__class__
+                updated = profile_model.objects.filter(pk=profile.pk).update(
+                    monthly_used=Greatest(
+                        F('monthly_used') - conversion.generation_count,
+                        Value(0),
+                    )
+                )
+                if updated:
+                    profile.refresh_from_db(fields=['monthly_used'])
+                    if hasattr(profile, "invalidate_usage_cache"):
+                        profile.invalidate_usage_cache()
+
+            # 既に生成されている画像があれば削除
+            generated_images = list(conversion.generated_images.filter(is_deleted=False))
+            removed_images = 0
+            for image in generated_images:
+                absolute_path = os.path.join(settings.MEDIA_ROOT, image.image_path)
+                try:
+                    if os.path.exists(absolute_path):
+                        os.remove(absolute_path)
+                except OSError as cleanup_error:
+                    logger.warning(
+                        "Failed to remove generated image file %s during cancel: %s",
+                        absolute_path,
+                        cleanup_error,
+                    )
+                image.delete()
+                removed_images += 1
+
+        logger.info(
+            "Conversion cancelled: conversion_id=%s, removed_images=%s",
+            conversion_id,
+            removed_images,
+        )
 
         return JsonResponse({
             'status': 'success',

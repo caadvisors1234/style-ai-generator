@@ -43,8 +43,10 @@
       if (counterEl) {
         if (conversion.status === 'completed' && data.images) {
           counterEl.textContent = `${data.images.length} / ${total} 枚`;
-        } else if (total > 0 && conversion.status === 'processing') {
+        } else if (conversion.status === 'processing' && total > 0) {
           counterEl.textContent = `${current} / ${total} 枚`;
+        } else if (conversion.status === 'cancelled') {
+          counterEl.textContent = 'キャンセル済み';
         } else {
           counterEl.textContent = conversion.status === 'processing' ? '処理中...' : '';
         }
@@ -59,6 +61,14 @@
       } else if (conversion.status === 'failed') {
         notifyError(conversion.error_message || '画像変換に失敗しました');
         clearInterval(timer);
+      } else if (conversion.status === 'cancelled') {
+        notifyWarning('変換をキャンセルしました');
+        clearInterval(timer);
+        if (cancelBtn) {
+          cancelBtn.disabled = true;
+        }
+        updateBar(0, 'cancelled', 'キャンセルしました');
+        setTimeout(() => (window.location.href = '/'), 1500);
       }
     } catch (error) {
       updateBar(100, 'failed', 'ステータスの取得に失敗しました');

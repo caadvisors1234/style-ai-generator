@@ -1,8 +1,7 @@
 (() => {
-  // URLパラメータから取得した変換IDは既にグローバル変数として定義済み
   if (!conversionIds || !conversionIds.length) {
     notifyError('変換IDが指定されていません');
-    setTimeout(() => window.location.href = '/', 2000);
+    setTimeout(() => (window.location.href = '/'), 2000);
     return;
   }
 
@@ -11,17 +10,30 @@
   const overallBar = document.getElementById('overall-progress-bar');
   const overallCounter = document.getElementById('overall-counter');
   const overallMessage = document.getElementById('overall-message');
+  const cancelBtn = document.getElementById('cancel-all-conversions');
 
-  if (!container || !template || !overallBar || !overallCounter) {
+  if (!container || !template || !overallBar || !overallCounter || !overallMessage) {
     console.error('Required elements not found');
     return;
   }
 
-  // 各変換の状態を保持
   const conversions = {};
   let timer = null;
+  const ACTIVE_STATUSES = new Set(['pending', 'processing']);
 
-  // 変換カードの初期化
+  function hasActiveConversions() {
+    return Object.values(conversions).some((conversion) => ACTIVE_STATUSES.has(conversion.status));
+  }
+
+  function setCancelButtonState(forceDisabled = false) {
+    if (!cancelBtn) return;
+    if (forceDisabled) {
+      cancelBtn.disabled = true;
+      return;
+    }
+    cancelBtn.disabled = !hasActiveConversions();
+  }
+
   function initializeConversionCards() {
     container.innerHTML = '';
     conversionIds.forEach((id, index) => {
@@ -46,9 +58,10 @@
         error: null,
       };
     });
+
+    setCancelButtonState();
   }
 
-  // 個別カードの更新
   function updateConversionCard(id, data) {
     const card = container.querySelector(`[data-conversion-id="${id}"]`);
     if (!card) return;
@@ -57,7 +70,6 @@
     const total = conversion.generation_count || 0;
     const current = conversion.current_count || 0;
 
-    // 進捗率の計算
     let progress = 10;
     if (total > 0) {
       const ratio = Math.min(99, Math.round((current / total) * 100));
@@ -65,47 +77,48 @@
     }
     if (conversion.status === 'completed' || conversion.status === 'failed') {
       progress = 100;
+    } else if (conversion.status === 'cancelled') {
+      progress = 0;
     }
 
-    // プログレスバーの更新
     const progressBar = card.querySelector('.conversion-progress-bar');
-    progressBar.classList.remove('bg-success', 'bg-danger');
-    progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+    if (conversion.status === 'processing') {
+      progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+    } else {
+      progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+    }
     progressBar.style.width = `${progress}%`;
     progressBar.setAttribute('aria-valuenow', progress);
-    progressBar.textContent = `${progress}%`;
+    progressBar.textContent = conversion.status === 'cancelled' ? 'キャンセル' : `${progress}%`;
 
-    // ステータスバッジの更新
     const statusBadge = card.querySelector('.conversion-status-badge');
     const statusMap = {
       pending: { text: '待機中', class: 'bg-secondary' },
       processing: { text: '処理中', class: 'bg-primary' },
       completed: { text: '完了', class: 'bg-success' },
       failed: { text: '失敗', class: 'bg-danger' },
+      cancelled: { text: 'キャンセル済み', class: 'bg-secondary' },
     };
     const statusInfo = statusMap[conversion.status] || statusMap.pending;
     statusBadge.textContent = statusInfo.text;
     statusBadge.className = `badge ${statusInfo.class} conversion-status-badge`;
 
-    // 進捗バーの色を単一画像の進捗バーと統一するため、状態による色変更は行わない
-
-    // カウンターの更新
     const counter = card.querySelector('.conversion-counter');
     if (conversion.status === 'completed' && data.images) {
       counter.textContent = `${data.images.length} / ${total} 枚`;
-    } else if (total > 0 && conversion.status === 'processing') {
+    } else if (conversion.status === 'processing' && total > 0) {
       counter.textContent = `${current} / ${total} 枚`;
+    } else if (conversion.status === 'cancelled') {
+      counter.textContent = 'キャンセル済み';
     } else {
       counter.textContent = conversion.status === 'processing' ? '処理中...' : '';
     }
 
-    // プロンプトの更新（初回のみ）
     const promptEl = card.querySelector('.conversion-prompt');
     if (conversion.prompt && promptEl.textContent === '読み込み中...') {
       promptEl.textContent = conversion.prompt;
     }
 
-    // 状態を保存
     conversions[id] = {
       id,
       status: conversion.status,
@@ -117,43 +130,133 @@
     };
   }
 
-  // 全体の進捗を更新
   function updateOverallProgress() {
     const total = conversionIds.length;
-    const completed = Object.values(conversions).filter((c) => c.status === 'completed').length;
-    const failed = Object.values(conversions).filter((c) => c.status === 'failed').length;
-    const processing = Object.values(conversions).filter((c) => c.status === 'processing').length;
+    const list = Object.values(conversions);
+    const completed = list.filter((c) => c.status === 'completed').length;
+    const failed = list.filter((c) => c.status === 'failed').length;
+    const cancelled = list.filter((c) => c.status === 'cancelled').length;
+    const processing = list.filter((c) => c.status === 'processing').length;
+    const finished = completed + failed + cancelled;
+    const overallPercent = total > 0 ? Math.round((finished / total) * 100) : 0;
 
-    // 全体の進捗率
-    const overallPercent = Math.round((completed / total) * 100);
-
-    // プログレスバーの更新
-    overallBar.classList.remove('bg-success', 'bg-danger');
-    overallBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+    if (finished < total) {
+      overallBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+    } else {
+      overallBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+    }
     overallBar.style.width = `${overallPercent}%`;
     overallBar.setAttribute('aria-valuenow', overallPercent);
     overallBar.textContent = `${overallPercent}%`;
 
-    // カウンターの更新
-    overallCounter.textContent = `${completed} / ${total} 件完了`;
+    let counterText = `${completed} / ${total} 件完了`;
+    if (cancelled > 0) {
+      counterText += ` ・ ${cancelled}件キャンセル`;
+    }
+    if (failed > 0) {
+      counterText += ` ・ ${failed}件失敗`;
+    }
+    overallCounter.textContent = counterText;
 
-    // メッセージの更新
-    if (completed === total) {
-      overallMessage.textContent = '全ての変換が完了しました！ギャラリーへ移動します...';
-    } else if (failed > 0 && completed + failed === total) {
-      overallMessage.textContent = `${failed}件の変換が失敗しました`;
+    if (finished === total) {
+      if (completed === total) {
+        overallMessage.textContent = '全ての変換が完了しました！ギャラリーへ移動します...';
+      } else if (completed > 0) {
+        overallMessage.textContent = '一部の変換が完了しました。ギャラリーで確認できます。';
+      } else if (cancelled === total) {
+        overallMessage.textContent = '全ての変換をキャンセルしました。';
+      } else if (failed === total) {
+        overallMessage.textContent = '全ての変換が失敗しました。';
+      } else {
+        overallMessage.textContent = '一部の変換がキャンセルまたは失敗しました。';
+      }
     } else if (processing > 0) {
       overallMessage.textContent = `${processing}件の変換を処理中...`;
+    } else if (cancelled > 0) {
+      overallMessage.textContent = `${cancelled}件の変換をキャンセルしました`;
+    } else if (failed > 0) {
+      overallMessage.textContent = `${failed}件の変換が失敗しました`;
     }
 
-    return { completed, failed, total };
+    setCancelButtonState();
+
+    return { completed, failed, cancelled, total, finished };
   }
 
-  // 全ての変換のステータスを取得
+  async function cancelAllConversions() {
+    if (!cancelBtn) return;
+
+    const cancellableIds = conversionIds.filter((id) => {
+      const status = conversions[id]?.status;
+      return ACTIVE_STATUSES.has(status || 'pending');
+    });
+
+    if (!cancellableIds.length) {
+      notifyWarning('キャンセル可能な変換はありません');
+      setCancelButtonState(true);
+      return;
+    }
+
+    cancelBtn.disabled = true;
+
+    try {
+      const results = await Promise.allSettled(
+        cancellableIds.map((id) =>
+          APIClient.post(`/api/v1/convert/${id}/cancel/`, {}).then(
+            (data) => ({ id, data }),
+            (error) => {
+              throw { id, error };
+            }
+          )
+        )
+      );
+
+      let cancelledCount = 0;
+      let alreadyFinishedCount = 0;
+      let alreadyCancelledCount = 0;
+      const failed = [];
+
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          const { data } = result.value || {};
+          if (data && data.result === 'already_finished') {
+            alreadyFinishedCount += 1;
+          } else if (data && data.result === 'already_cancelled') {
+            alreadyCancelledCount += 1;
+          } else {
+            cancelledCount += 1;
+          }
+        } else {
+          failed.push(result.reason);
+        }
+      });
+
+      if (cancelledCount > 0) {
+        notifySuccess(`${cancelledCount}件の変換をキャンセルしました`);
+      }
+
+      if (alreadyFinishedCount > 0) {
+        notifyWarning(`${alreadyFinishedCount}件の変換は既に完了していました`);
+      }
+
+      if (alreadyCancelledCount > 0) {
+        notifyWarning(`${alreadyCancelledCount}件の変換は既にキャンセル済みでした`);
+      }
+
+      if (failed.length > 0) {
+        notifyError(`${failed.length}件のキャンセルに失敗しました`);
+        console.error('Failed to cancel conversions:', failed.map((item) => item.reason));
+      }
+    } finally {
+      await fetchAllStatus();
+      setCancelButtonState();
+    }
+  }
+
   async function fetchAllStatus() {
     try {
       const promises = conversionIds.map((id) =>
-        APIClient.get(`/api/v1/convert/${id}/status/`).catch((error) => ({
+        APIClient.get(`/api/v1/convert/${id}/status/`).catch(() => ({
           error: true,
           conversion: { id, status: 'failed', error_message: 'ステータスの取得に失敗' },
         }))
@@ -161,42 +264,63 @@
 
       const results = await Promise.all(promises);
 
-      // 各カードを更新
       results.forEach((data) => {
         if (data.conversion) {
           updateConversionCard(data.conversion.id, data);
         }
       });
 
-      // 全体の進捗を更新
-      const { completed, failed, total } = updateOverallProgress();
+      const { completed, failed, cancelled, total, finished } = updateOverallProgress();
 
-      // 全て完了または失敗したらタイマーを停止してギャラリーへ遷移
-      if (completed + failed === total) {
+      if (finished === total) {
         clearInterval(timer);
+        setCancelButtonState(true);
 
         if (completed > 0) {
-          notifySuccess(`${completed}件の変換が完了しました`);
+          const summary = [];
+          if (cancelled > 0) summary.push(`${cancelled}件キャンセル`);
+          if (failed > 0) summary.push(`${failed}件失敗`);
+
+          if (summary.length) {
+            notifyWarning(`${completed}件完了 (${summary.join('・')})`);
+          } else {
+            notifySuccess(`${completed}件の変換が完了しました`);
+          }
+
           setTimeout(() => {
             window.location.href = '/gallery/';
           }, 2000);
-        } else {
+        } else if (cancelled === total) {
+          notifyWarning('全ての変換をキャンセルしました');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1500);
+        } else if (failed === total) {
           notifyError('全ての変換が失敗しました');
           setTimeout(() => {
             window.location.href = '/';
           }, 3000);
+        } else {
+          notifyWarning(`キャンセル: ${cancelled}件 / 失敗: ${failed}件`);
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
         }
       }
     } catch (error) {
       console.error('Failed to fetch conversion status:', error);
       notifyError('進捗の取得に失敗しました');
+      setCancelButtonState();
     }
   }
 
-  // 初期化処理
   document.addEventListener('DOMContentLoaded', () => {
     initializeConversionCards();
     fetchAllStatus();
     timer = setInterval(fetchAllStatus, 4000);
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', cancelAllConversions);
+    }
   });
 })();

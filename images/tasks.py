@@ -14,6 +14,7 @@ from decimal import Decimal
 
 from celery import shared_task
 from django.conf import settings
+from django.db import transaction
 from django.db.models import F, Value
 from django.db.models.functions import Greatest
 from channels.layers import get_channel_layer
@@ -24,6 +25,30 @@ from .services.gemini_image_api import GeminiImageAPIService, GeminiImageAPIErro
 
 
 logger = logging.getLogger(__name__)
+
+
+class ConversionCancelledError(Exception):
+    """Raised when a conversion has been cancelled by the user."""
+
+
+def _ensure_not_cancelled(conversion: ImageConversion) -> None:
+    """Reload conversion status and abort if it has been cancelled."""
+
+    conversion.refresh_from_db(fields=['status'])
+    if conversion.status == 'cancelled':
+        raise ConversionCancelledError(f"Conversion {conversion.id} has been cancelled")
+
+
+def _remove_file_if_exists(path: str) -> None:
+    """Remove a file from disk if it exists."""
+
+    if not path:
+        return
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+    except OSError as error:
+        logger.warning("Failed to remove file %s: %s", path, error)
 
 
 @shared_task(bind=True, max_retries=3)
@@ -42,13 +67,37 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
     start_time = time.time()
     channel_layer = get_channel_layer()
     conversion_group = f'conversion_{conversion_id}'
+    conversion = None
+    saved_records = []
 
     try:
-        # ImageConversionレコードを取得
-        conversion = ImageConversion.objects.get(id=conversion_id)
+        with transaction.atomic():
+            conversion = (
+                ImageConversion.objects.select_for_update()
+                .get(id=conversion_id)
+            )
+            saved_records = []
 
-        # ステータスを処理中に更新
-        conversion.mark_as_processing()
+            if conversion.status == 'cancelled':
+                raise ConversionCancelledError(
+                    f"Conversion {conversion.id} has been cancelled"
+                )
+
+            if conversion.status in ['completed', 'failed']:
+                logger.info(
+                    "Conversion %s already finished with status %s. Skipping.",
+                    conversion.id,
+                    conversion.status,
+                )
+                return {
+                    'status': conversion.status,
+                    'message': 'Conversion already finished before processing task.',
+                }
+
+            if conversion.status != 'processing':
+                conversion.mark_as_processing()
+
+        _ensure_not_cancelled(conversion)
 
         # 進捗通知: 開始
         async_to_sync(channel_layer.group_send)(
@@ -78,12 +127,16 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
         # Gemini 2.5 Flash Imageで画像生成
         logger.info(f"Calling Gemini Image API with prompt: {conversion.prompt[:100]}...")
 
+        _ensure_not_cancelled(conversion)
+
         generated_results = GeminiImageAPIService.generate_images_from_reference(
             original_image_path=original_image_path,
             prompt=conversion.prompt,
             generation_count=conversion.generation_count,
             aspect_ratio=conversion.aspect_ratio,
         )
+
+        _ensure_not_cancelled(conversion)
 
         logger.info(f"Generated {len(generated_results)} images")
 
@@ -102,31 +155,41 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
         saved_images = []
 
         for idx, result in enumerate(generated_results, 1):
-            # ファイル名生成
-            filename = f"{uuid.uuid4()}.jpg"
+            _ensure_not_cancelled(conversion)
 
-            # 保存ディレクトリ
+            filename = f"{uuid.uuid4()}.jpg"
             output_dir = f"generated/user_{conversion.user.id}"
 
-            # 画像を保存
+            relative_path = None
+            file_path = None
+
             try:
+                _ensure_not_cancelled(conversion)
                 relative_path = GeminiImageAPIService.save_generated_image(
                     image_data=result['image_data'],
                     output_dir=output_dir,
                     filename=filename
                 )
 
-                # ファイルサイズ取得
                 file_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+
+                _ensure_not_cancelled(conversion)
+
                 file_size = os.path.getsize(file_path)
 
-                # GeneratedImageレコード作成
+                _ensure_not_cancelled(conversion)
+
                 generated_image = GeneratedImage.objects.create(
                     conversion=conversion,
                     image_path=relative_path,
                     image_name=filename,
                     image_size=file_size
                 )
+
+                saved_records.append({
+                    'instance': generated_image,
+                    'file_path': file_path,
+                })
 
                 saved_images.append({
                     'id': generated_image.id,
@@ -135,18 +198,34 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
                     'description': result.get('description', ''),
                 })
 
-                logger.info(f"Saved image {idx}/{len(generated_results)}: {relative_path}")
+                logger.info(
+                    "Saved image %s/%s: %s",
+                    idx,
+                    len(generated_results),
+                    relative_path,
+                )
 
+            except ConversionCancelledError:
+                if file_path:
+                    _remove_file_if_exists(file_path)
+                elif relative_path:
+                    _remove_file_if_exists(os.path.join(settings.MEDIA_ROOT, relative_path))
+                raise
             except Exception as e:
                 logger.error(f"Failed to save image {idx}: {str(e)}")
+                _remove_file_if_exists(file_path)
                 # 一部失敗しても続行
                 continue
+
+        _ensure_not_cancelled(conversion)
 
         if not saved_images:
             raise GeminiImageAPIError("画像の保存に失敗しました")
 
         # 処理時間計算
         processing_time = Decimal(str(time.time() - start_time))
+
+        _ensure_not_cancelled(conversion)
 
         # ステータスを完了に更新
         conversion.mark_as_completed(processing_time)
@@ -173,6 +252,43 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
             'images_count': len(saved_images),
             'processing_time': float(processing_time)
         }
+
+    except ConversionCancelledError:
+        logger.info("Conversion %s cancelled. Cleaning up partial results.", conversion_id)
+
+        for record in saved_records:
+            _remove_file_if_exists(record.get('file_path'))
+            image_instance = record.get('instance')
+            if image_instance:
+                try:
+                    image_instance.delete()
+                except Exception as delete_error:
+                    logger.warning(
+                        "Failed to delete GeneratedImage %s during cancel cleanup: %s",
+                        getattr(image_instance, 'id', 'unknown'),
+                        delete_error,
+                    )
+
+        if conversion is None:
+            try:
+                conversion = ImageConversion.objects.get(id=conversion_id)
+            except ImageConversion.DoesNotExist:
+                conversion = None
+
+        if conversion:
+            conversion.refresh_from_db(fields=['status'])
+            if conversion.status != 'cancelled':
+                conversion.mark_as_cancelled()
+
+        async_to_sync(channel_layer.group_send)(
+            conversion_group,
+            {
+                'type': 'conversion_cancelled',
+                'message': '画像変換はキャンセルされました'
+            }
+        )
+
+        return {'status': 'cancelled', 'message': 'Conversion was cancelled'}
 
     except ImageConversion.DoesNotExist:
         error_msg = f"ImageConversion with ID {conversion_id} does not exist"

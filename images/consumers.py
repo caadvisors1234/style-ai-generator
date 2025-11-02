@@ -107,6 +107,18 @@ class ImageConversionConsumer(AsyncWebsocketConsumer):
             'error': event.get('error', '')
         }))
 
+    async def conversion_cancelled(self, event):
+        """
+        変換キャンセルメッセージをクライアントに送信
+
+        Args:
+            event: キャンセルイベントデータ
+        """
+        await self.send(text_data=json.dumps({
+            'type': 'cancelled',
+            'message': event['message']
+        }))
+
     @database_sync_to_async
     def check_conversion_ownership(self, user_id, conversion_id):
         """
