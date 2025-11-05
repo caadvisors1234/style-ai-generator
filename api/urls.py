@@ -3,7 +3,7 @@ API URLルーティング
 """
 
 from django.urls import path
-from .views import auth, convert, prompts, upload, gallery, usage, health, scrape
+from .views import auth, convert, prompts, upload, gallery, usage, health, scrape, favorites
 
 
 app_name = 'api'
@@ -37,6 +37,11 @@ urlpatterns = [
     # プロンプトプリセットAPI
     path('v1/prompts/', prompts.prompts_list, name='prompts_list'),
     path('v1/prompts/categories/', prompts.prompts_categories, name='prompts_categories'),
+
+    # お気に入りプロンプトAPI
+    path('v1/prompts/favorites/', favorites.favorites_list, name='favorites_list'),
+    path('v1/prompts/favorites/add/', favorites.favorites_add, name='favorites_add'),
+    path('v1/prompts/favorites/<int:preset_id>/remove/', favorites.favorites_remove, name='favorites_remove'),
 
     # ギャラリーAPI
     path('v1/gallery/', gallery.gallery_list, name='gallery_list'),

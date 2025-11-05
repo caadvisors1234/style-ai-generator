@@ -6,7 +6,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.conf import settings
 import os
-from .models import ImageConversion, GeneratedImage, PromptPreset
+from .models import ImageConversion, GeneratedImage, PromptPreset, UserFavoritePrompt
 
 
 class GeneratedImageInline(admin.TabularInline):
@@ -308,6 +308,42 @@ class PromptPresetAdmin(admin.ModelAdmin):
             request,
             f'{updated}件のプリセットを無効にしました。'
         )
+
+
+@admin.register(UserFavoritePrompt)
+class UserFavoritePromptAdmin(admin.ModelAdmin):
+    """ユーザーお気に入りプロンプト管理"""
+
+    list_display = ('user_link', 'preset_name', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('user__username', 'preset__name')
+    readonly_fields = ('created_at',)
+
+    fieldsets = (
+        ('お気に入り情報', {
+            'fields': ('user', 'preset')
+        }),
+        ('タイムスタンプ', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def user_link(self, obj):
+        """ユーザー名リンク"""
+        return format_html(
+            '<a href="/admin/auth/user/{}/change/">{}</a>',
+            obj.user.id,
+            obj.user.username
+        )
+    user_link.short_description = 'ユーザー'
+    user_link.admin_order_field = 'user__username'
+
+    def preset_name(self, obj):
+        """プリセット名"""
+        return obj.preset.name
+    preset_name.short_description = 'プリセット'
+    preset_name.admin_order_field = 'preset__name'
 
 
 # Admin サイトのカスタマイズ

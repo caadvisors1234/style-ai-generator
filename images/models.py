@@ -349,3 +349,40 @@ class PromptPreset(models.Model):
 
     def __str__(self):
         return f'{self.name} ({self.get_category_display()})'
+
+
+
+class UserFavoritePrompt(models.Model):
+    """
+    ユーザーのお気に入りプロンプトプリセット
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='favorite_prompts',
+        verbose_name='ユーザー'
+    )
+    preset = models.ForeignKey(
+        PromptPreset,
+        on_delete=models.CASCADE,
+        related_name='favorited_by',
+        verbose_name='プリセット'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='登録日時'
+    )
+
+    class Meta:
+        db_table = 'user_favorite_prompt'
+        db_table_comment = 'ユーザーお気に入りプロンプトテーブル'
+        verbose_name = 'お気に入りプロンプト'
+        verbose_name_plural = 'お気に入りプロンプト'
+        unique_together = [['user', 'preset']]
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f'{self.user.username} - {self.preset.name}'

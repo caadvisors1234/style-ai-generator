@@ -36,7 +36,8 @@ def prompts_list(request):
                     "prompt": "string",
                     "category": "string",
                     "description": "string",
-                    "display_order": int
+                    "display_order": int,
+                    "is_favorite": bool (ログイン時のみ)
                 }
             ]
         }
@@ -44,7 +45,46 @@ def prompts_list(request):
     try:
         category = request.GET.get('category')
 
-        # キャッシュキー
+        # ログインユーザーの場合はキャッシュを使用しない（お気に入り状態を含むため）
+        if request.user.is_authenticated:
+            # データベースから取得
+            prompts = PromptPreset.objects.filter(is_active=True)
+
+            if category:
+                prompts = prompts.filter(category=category)
+
+            prompts = prompts.order_by('display_order', 'name')
+
+            # お気に入りIDセットを取得
+            from images.models import UserFavoritePrompt
+            favorite_preset_ids = set(
+                UserFavoritePrompt.objects.filter(
+                    user=request.user
+                ).values_list('preset_id', flat=True)
+            )
+
+            # レスポンスデータ構築（お気に入り状態を含む）
+            prompts_data = [
+                {
+                    'id': prompt.id,
+                    'name': prompt.name,
+                    'prompt': prompt.prompt,
+                    'category': prompt.category,
+                    'description': prompt.description,
+                    'display_order': prompt.display_order,
+                    'is_favorite': prompt.id in favorite_preset_ids
+                }
+                for prompt in prompts
+            ]
+
+            response_data = {
+                'status': 'success',
+                'prompts': prompts_data
+            }
+
+            return JsonResponse(response_data)
+
+        # 非ログイン時はキャッシュを使用
         cache_key = f"prompts_list:{category if category else 'all'}"
 
         # キャッシュから取得
