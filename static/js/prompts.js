@@ -401,6 +401,12 @@
       });
       // 検索時は常に全件表示
       isShowingAllPrompts = true;
+    } else {
+      // 検索クエリが空の場合は、カテゴリ変更時以外の場合は表示状態をリセット
+      // （カテゴリ変更時は既にリセットされている）
+      if (previousCategory === currentCategory) {
+        isShowingAllPrompts = false;
+      }
     }
 
     // 表示件数の制限（5件を超える場合、かつ全件表示フラグがfalseの場合）
