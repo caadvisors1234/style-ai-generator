@@ -445,6 +445,20 @@ textarea.form-control {
     color: white;
 }
 
+/* お気に入りボタンのスタイル（控えめに） */
+.prompt-favorite-btn {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.prompt-favorite-btn:hover {
+    opacity: 1;
+}
+
+.prompt-favorite-btn svg {
+    pointer-events: none;
+}
+
 /* ================================================
    Toast Notifications - 通知トースト
    ================================================ */
