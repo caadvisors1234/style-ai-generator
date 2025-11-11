@@ -60,10 +60,12 @@ def gallery_list(request):
         search = request.GET.get('search', '').strip()
         sort = request.GET.get('sort', 'created_at_desc')
 
-        # ユーザーの変換一覧を取得（削除済み除外）
+        # ユーザーの変換一覧を取得（削除済み・キャンセル済み除外）
         conversions = ImageConversion.objects.filter(
             user=request.user,
             is_deleted=False
+        ).exclude(
+            status='cancelled'
         ).select_related('user').prefetch_related(
             Prefetch(
                 'generated_images',
@@ -164,10 +166,17 @@ def gallery_detail(request, conversion_id):
         }
     """
     try:
-        # 変換取得（権限チェック）
+        # 変換取得（権限チェック、キャンセル済み除外）
         conversion = ImageConversion.objects.select_related('user').prefetch_related(
             'generated_images'
         ).get(id=conversion_id, user=request.user, is_deleted=False)
+        
+        # キャンセルされた変換は404を返す
+        if conversion.status == 'cancelled':
+            return JsonResponse({
+                'status': 'error',
+                'message': '変換が見つかりません'
+            }, status=404)
 
         # 生成画像一覧
         generated_images = []
@@ -288,10 +297,12 @@ def image_detail(request, image_id):
         }
     """
     try:
-        # 画像取得（権限チェック）
+        # 画像取得（権限チェック、キャンセル済み変換の画像は除外）
         image = GeneratedImage.objects.select_related('conversion', 'conversion__user').get(
             id=image_id,
             conversion__user=request.user,
+            conversion__is_deleted=False,
+            conversion__status__in=['pending', 'processing', 'completed', 'failed'],  # cancelledを除外
             is_deleted=False
         )
 
@@ -342,10 +353,12 @@ def image_delete(request, image_id):
         }
     """
     try:
-        # 画像取得（権限チェック）
+        # 画像取得（権限チェック、キャンセル済み変換の画像は除外）
         image = GeneratedImage.objects.select_related('conversion').get(
             id=image_id,
             conversion__user=request.user,
+            conversion__is_deleted=False,
+            conversion__status__in=['pending', 'processing', 'completed', 'failed'],  # cancelledを除外
             is_deleted=False
         )
 
@@ -383,10 +396,12 @@ def image_download(request, image_id):
         画像ファイル（Content-Disposition: attachment）
     """
     try:
-        # 画像取得（権限チェック）
+        # 画像取得（権限チェック、キャンセル済み変換の画像は除外）
         image = GeneratedImage.objects.select_related('conversion').get(
             id=image_id,
             conversion__user=request.user,
+            conversion__is_deleted=False,
+            conversion__status__in=['pending', 'processing', 'completed', 'failed'],  # cancelledを除外
             is_deleted=False
         )
 
@@ -463,10 +478,12 @@ def image_brightness(request, image_id):
                 'message': 'adjustmentパラメータが必要です'
             }, status=400)
 
-        # 画像取得（権限チェック）
+        # 画像取得（権限チェック、キャンセル済み変換の画像は除外）
         image = GeneratedImage.objects.select_related('conversion').get(
             id=image_id,
             conversion__user=request.user,
+            conversion__is_deleted=False,
+            conversion__status__in=['pending', 'processing', 'completed', 'failed'],  # cancelledを除外
             is_deleted=False
         )
 

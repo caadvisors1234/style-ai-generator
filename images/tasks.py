@@ -106,7 +106,9 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
                 'type': 'conversion_progress',
                 'message': '画像変換を開始しています...',
                 'progress': 10,
-                'status': 'processing'
+                'status': 'processing',
+                'current': 0,
+                'total': conversion.generation_count
             }
         )
 
@@ -120,7 +122,9 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
                 'type': 'conversion_progress',
                 'message': 'AI画像生成中...',
                 'progress': 30,
-                'status': 'processing'
+                'status': 'processing',
+                'current': 0,
+                'total': conversion.generation_count
             }
         )
 
@@ -147,7 +151,9 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
                 'type': 'conversion_progress',
                 'message': '生成画像を保存中...',
                 'progress': 70,
-                'status': 'processing'
+                'status': 'processing',
+                'current': 0,
+                'total': conversion.generation_count
             }
         )
 
@@ -203,6 +209,20 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
                     idx,
                     len(generated_results),
                     relative_path,
+                )
+
+                # 進捗通知: 画像保存進捗（70%から90%の間で更新）
+                progress = 70 + int((idx / len(generated_results)) * 20)
+                async_to_sync(channel_layer.group_send)(
+                    conversion_group,
+                    {
+                        'type': 'conversion_progress',
+                        'message': f'生成画像を保存中... ({idx}/{len(generated_results)})',
+                        'progress': progress,
+                        'status': 'processing',
+                        'current': idx,
+                        'total': len(generated_results)
+                    }
                 )
 
             except ConversionCancelledError:

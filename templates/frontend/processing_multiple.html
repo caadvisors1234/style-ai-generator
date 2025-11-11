@@ -56,5 +56,6 @@ const urlParams = new URLSearchParams(window.location.search);
 const conversionIdsParam = urlParams.get('ids');
 const conversionIds = conversionIdsParam ? conversionIdsParam.split(',').map(id => parseInt(id)) : [];
 </script>
+<script src="{% static 'js/websocket-client.js' %}"></script>
 <script src="{% static 'js/progress_multiple.js' %}"></script>
 {% endblock %}

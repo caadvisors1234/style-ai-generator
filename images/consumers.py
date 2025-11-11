@@ -74,12 +74,20 @@ class ImageConversionConsumer(AsyncWebsocketConsumer):
         Args:
             event: 進捗イベントデータ
         """
-        await self.send(text_data=json.dumps({
+        message_data = {
             'type': 'progress',
             'message': event['message'],
             'progress': event['progress'],
             'status': event['status']
-        }))
+        }
+        # currentとtotalが含まれている場合は追加
+        if 'current' in event:
+            message_data['current'] = event['current']
+            message_data['currentCount'] = event['current']  # 互換性のため
+        if 'total' in event:
+            message_data['total'] = event['total']
+            message_data['totalCount'] = event['total']  # 互換性のため
+        await self.send(text_data=json.dumps(message_data))
 
     async def conversion_completed(self, event):
         """

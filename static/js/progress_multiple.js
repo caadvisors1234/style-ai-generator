@@ -1,6 +1,14 @@
+/**
+ * 複数画像変換進捗表示（WebSocket対応）
+ * 複数の変換を同時にWebSocketでリアルタイム監視
+ */
 (() => {
+  'use strict';
+
   if (!conversionIds || !conversionIds.length) {
-    notifyError('変換IDが指定されていません');
+    const errorMessage = '変換IDが指定されていません';
+    console.error('[ProgressMultiple]', errorMessage);
+    notifyError(errorMessage);
     setTimeout(() => (window.location.href = '/'), 2000);
     return;
   }
@@ -13,12 +21,15 @@
   const cancelBtn = document.getElementById('cancel-all-conversions');
 
   if (!container || !template || !overallBar || !overallCounter || !overallMessage) {
-    console.error('Required elements not found');
+    const errorMessage = '必要な要素が見つかりません';
+    console.error('[ProgressMultiple]', errorMessage);
+    notifyError(errorMessage);
     return;
   }
 
   const conversions = {};
-  let timer = null;
+  let wsManager = null;
+  let fallbackTimer = null;
   const ACTIVE_STATUSES = new Set(['pending', 'processing']);
 
   function hasActiveConversions() {
@@ -244,8 +255,9 @@
       }
 
       if (failed.length > 0) {
-        notifyError(`${failed.length}件のキャンセルに失敗しました`);
-        console.error('Failed to cancel conversions:', failed.map((item) => item.reason));
+        const errorMessage = `${failed.length}件のキャンセルに失敗しました`;
+        console.error('[ProgressMultiple] Failed to cancel conversions:', failed.map((item) => item.reason));
+        notifyError(errorMessage);
       }
     } finally {
       await fetchAllStatus();
@@ -253,13 +265,19 @@
     }
   }
 
-  async function fetchAllStatus() {
+  /**
+   * 初期状態を取得（WebSocket接続前に一度取得）
+   */
+  async function fetchInitialStatus() {
     try {
       const promises = conversionIds.map((id) =>
-        APIClient.get(`/api/v1/convert/${id}/status/`).catch(() => ({
-          error: true,
-          conversion: { id, status: 'failed', error_message: 'ステータスの取得に失敗' },
-        }))
+        APIClient.get(`/api/v1/convert/${id}/status/`).catch((error) => {
+          console.error(`[ProgressMultiple] Failed to fetch status for conversion ${id}:`, error);
+          return {
+            error: true,
+            conversion: { id, status: 'failed', error_message: 'ステータスの取得に失敗しました' },
+          };
+        })
       );
 
       const results = await Promise.all(promises);
@@ -270,57 +288,252 @@
         }
       });
 
-      const { completed, failed, cancelled, total, finished } = updateOverallProgress();
+      updateOverallProgress();
+    } catch (error) {
+      const errorMessage = '進捗の取得に失敗しました';
+      console.error('[ProgressMultiple] Failed to fetch initial status:', error);
+      notifyError(errorMessage);
+    }
+  }
 
-      if (finished === total) {
-        clearInterval(timer);
-        setCancelButtonState(true);
+  /**
+   * WebSocket接続を開始
+   */
+  function connectWebSocket() {
+    if (!window.MultipleConversionWebSocket) {
+      console.warn('[ProgressMultiple] MultipleConversionWebSocket not available, falling back to polling');
+      startFallbackPolling();
+      return;
+    }
 
-        if (completed > 0) {
-          const summary = [];
-          if (cancelled > 0) summary.push(`${cancelled}件キャンセル`);
-          if (failed > 0) summary.push(`${failed}件失敗`);
+    wsManager = new window.MultipleConversionWebSocket(conversionIds, {
+      reconnectInterval: 3000,
+      maxReconnectAttempts: 5,
+      enableFallback: true,
+      fallbackPollInterval: 4000,
+    });
 
-          if (summary.length) {
-            notifyWarning(`${completed}件完了 (${summary.join('・')})`);
+    // 進捗更新イベント
+    wsManager.on('progress', ({ conversionId, progress, status, message, current, currentCount, total, totalCount }) => {
+      const card = container.querySelector(`[data-conversion-id="${conversionId}"]`);
+      if (card) {
+        const progressBar = card.querySelector('.conversion-progress-bar');
+        if (progressBar) {
+          progressBar.style.width = `${progress}%`;
+          progressBar.setAttribute('aria-valuenow', progress);
+          progressBar.textContent = `${progress}%`;
+
+          if (status === 'processing') {
+            progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
           } else {
-            notifySuccess(`${completed}件の変換が完了しました`);
+            progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
           }
+        }
 
-          setTimeout(() => {
-            window.location.href = '/gallery/';
-          }, 2000);
-        } else if (cancelled === total) {
-          notifyWarning('全ての変換をキャンセルしました');
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 1500);
-        } else if (failed === total) {
-          notifyError('全ての変換が失敗しました');
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 3000);
-        } else {
-          notifyWarning(`キャンセル: ${cancelled}件 / 失敗: ${failed}件`);
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 2000);
+        const counter = card.querySelector('.conversion-counter');
+        if (counter && conversions[conversionId]) {
+          const conv = conversions[conversionId];
+          if (status === 'processing' && conv.total > 0) {
+            counter.textContent = `${conv.current} / ${conv.total} 枚`;
+          }
         }
       }
+
+      // 変換データを更新
+      if (conversions[conversionId]) {
+        conversions[conversionId].status = status;
+        conversions[conversionId].progress = progress;
+        // currentを更新（データに含まれている場合）
+        if (current !== undefined) {
+          conversions[conversionId].current = current;
+        } else if (currentCount !== undefined) {
+          conversions[conversionId].current = currentCount;
+        }
+        // totalを更新（データに含まれている場合）
+        if (total !== undefined) {
+          conversions[conversionId].total = total;
+        } else if (totalCount !== undefined) {
+          conversions[conversionId].total = totalCount;
+        }
+      }
+
+      updateOverallProgress();
+    });
+
+    // 完了イベント
+    wsManager.on('completed', ({ conversionId, images }) => {
+      // ステータスAPIを呼び出して最新情報を取得
+      APIClient.get(`/api/v1/convert/${conversionId}/status/`)
+        .then((data) => {
+          updateConversionCard(conversionId, data);
+          checkAllFinished();
+        })
+        .catch((error) => {
+          console.error(`[ProgressMultiple] Failed to fetch completion status for conversion ${conversionId}:`, error);
+          // エラー時もカードを更新して続行
+          checkAllFinished();
+        });
+    });
+
+    // 失敗イベント
+    wsManager.on('failed', ({ conversionId, error }) => {
+      // ステータスAPIを呼び出して最新情報を取得
+      APIClient.get(`/api/v1/convert/${conversionId}/status/`)
+        .then((data) => {
+          updateConversionCard(conversionId, data);
+          checkAllFinished();
+        })
+        .catch((err) => {
+          console.error(`[ProgressMultiple] Failed to fetch failure status for conversion ${conversionId}:`, err);
+          // エラー時もカードを更新して続行
+          checkAllFinished();
+        });
+    });
+
+    // キャンセルイベント
+    wsManager.on('cancelled', ({ conversionId }) => {
+      // ステータスAPIを呼び出して最新情報を取得
+      APIClient.get(`/api/v1/convert/${conversionId}/status/`)
+        .then((data) => {
+          updateConversionCard(conversionId, data);
+          checkAllFinished();
+        })
+        .catch((err) => {
+          console.error(`[ProgressMultiple] Failed to fetch cancellation status for conversion ${conversionId}:`, err);
+          // エラー時もカードを更新して続行
+          checkAllFinished();
+        });
+    });
+
+    wsManager.connect();
+  }
+
+  /**
+   * フォールバック（ポーリング）を開始
+   */
+  function startFallbackPolling() {
+    if (fallbackTimer) {
+      return; // 既に開始されている
+    }
+
+    console.log('[ProgressMultiple] Starting fallback polling for multiple conversions');
+    if (overallMessage) {
+      overallMessage.textContent = 'ポーリングモードで進捗を監視中...';
+    }
+
+    fallbackTimer = setInterval(async () => {
+      await fetchAllStatus();
+    }, 4000);
+  }
+
+  /**
+   * 全ての変換のステータスを取得（フォールバック用）
+   */
+  async function fetchAllStatus() {
+    try {
+      const promises = conversionIds.map((id) =>
+        APIClient.get(`/api/v1/convert/${id}/status/`).catch((error) => {
+          console.error(`[ProgressMultiple] Failed to fetch status for conversion ${id}:`, error);
+          return {
+            error: true,
+            conversion: { id, status: 'failed', error_message: 'ステータスの取得に失敗しました' },
+          };
+        })
+      );
+
+      const results = await Promise.all(promises);
+
+      results.forEach((data) => {
+        if (data.conversion) {
+          updateConversionCard(data.conversion.id, data);
+        }
+      });
+
+      checkAllFinished();
     } catch (error) {
-      console.error('Failed to fetch conversion status:', error);
-      notifyError('進捗の取得に失敗しました');
+      const errorMessage = '進捗の取得に失敗しました';
+      console.error('[ProgressMultiple] Failed to fetch conversion status:', error);
+      notifyError(errorMessage);
       setCancelButtonState();
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    initializeConversionCards();
-    fetchAllStatus();
-    timer = setInterval(fetchAllStatus, 4000);
+  /**
+   * 全ての変換が完了したかチェック
+   */
+  function checkAllFinished() {
+    const { completed, failed, cancelled, total, finished } = updateOverallProgress();
 
+    if (finished === total) {
+      if (wsManager) {
+        wsManager.disconnect();
+        wsManager = null;
+      }
+      if (fallbackTimer) {
+        clearInterval(fallbackTimer);
+        fallbackTimer = null;
+      }
+
+      setCancelButtonState(true);
+
+      if (completed > 0) {
+        const summary = [];
+        if (cancelled > 0) summary.push(`${cancelled}件キャンセル`);
+        if (failed > 0) summary.push(`${failed}件失敗`);
+
+        if (summary.length) {
+          notifyWarning(`${completed}件完了 (${summary.join('・')})`);
+        } else {
+          notifySuccess(`${completed}件の変換が完了しました`);
+        }
+
+        setTimeout(() => {
+          window.location.href = '/gallery/';
+        }, 2000);
+      } else if (cancelled === total) {
+        notifyWarning('全ての変換をキャンセルしました');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1500);
+      } else if (failed === total) {
+        notifyError('全ての変換が失敗しました');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+      } else {
+        notifyWarning(`キャンセル: ${cancelled}件 / 失敗: ${failed}件`);
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+      }
+    }
+  }
+
+  /**
+   * 初期化
+   */
+  document.addEventListener('DOMContentLoaded', async () => {
+    initializeConversionCards();
+    
+    // 初期状態を取得
+    await fetchInitialStatus();
+
+    // WebSocket接続を開始
+    connectWebSocket();
+
+    // キャンセルボタンのイベントリスナー
     if (cancelBtn) {
       cancelBtn.addEventListener('click', cancelAllConversions);
     }
+
+    // ページ離脱時に接続を閉じる
+    window.addEventListener('beforeunload', () => {
+      if (wsManager) {
+        wsManager.disconnect();
+      }
+      if (fallbackTimer) {
+        clearInterval(fallbackTimer);
+      }
+    });
   });
 })();
