@@ -202,14 +202,18 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = False
 
 # Celery Beat Schedule (定期タスク)
+# 注意: 管理画面の「Clocked」「Crontabs」「Intervals」「Periodic tasks」「Solar events」は
+# 非表示にしており、実際のスケジュールはこの設定で管理しています。
 from celery.schedules import crontab
 
 CELERY_BEAT_SCHEDULE = {
+    # 月次利用回数リセット: 毎月1日 0時0分に実行
     'reset-monthly-usage': {
         'task': 'accounts.tasks.reset_monthly_usage_task',
         'schedule': crontab(hour=0, minute=0, day_of_month=1),
         'options': {'timezone': TIME_ZONE}
     },
+    # 期限切れ画像削除: 毎日 2時0分に実行
     'delete-expired-images': {
         'task': 'accounts.tasks.delete_expired_images_task',
         'schedule': crontab(hour=2, minute=0),
@@ -340,7 +344,14 @@ JAZZMIN_SETTINGS = {
     "show_sidebar": True,
     "navigation_expanded": True,
     "hide_apps": [],
-    "hide_models": [],
+    "hide_models": [
+        # Celery Beatのモデル（実際のスケジュールはsettings.pyのCELERY_BEAT_SCHEDULEで管理）
+        "django_celery_beat.clockedentry",      # Clocked
+        "django_celery_beat.crontabschedule",   # Crontabs
+        "django_celery_beat.intervalschedule",  # Intervals
+        "django_celery_beat.periodictask",     # Periodic tasks
+        "django_celery_beat.solarschedule",     # Solar events
+    ],
     "order_with_respect_to": ["auth", "accounts", "images"],
 
     # アイコン設定（Font Awesome）
