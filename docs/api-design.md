@@ -478,7 +478,7 @@ GET /api/v1/convert/job_abc123/status/
 - `processing`: 処理中
 - `completed`: 完了
 - `failed`: 失敗
-- `cancelled`: キャンセル済み
+- `cancelled`: キャンセル済み（ユーザーがキャンセルした変換。ギャラリーからは除外される）
 
 ---
 
@@ -575,42 +575,58 @@ GET /api/v1/gallery/?page=1&page_size=20&sort=-created_at&search=髪
 **成功レスポンス (200 OK)**:
 ```json
 {
-  "success": true,
-  "data": {
-    "count": 50,
-    "next": "/api/v1/gallery/?page=2&page_size=20",
-    "previous": null,
-    "results": [
-      {
-        "conversion_id": 42,
-        "original_image": {
-          "filename": "original.jpg",
-          "url": "/media/uploads/user_1/original.jpg"
+  "status": "success",
+  "conversions": [
+    {
+      "id": 42,
+      "original_image_url": "/media/uploads/user_1/original.jpg",
+      "original_image_name": "original.jpg",
+      "prompt": "背景を白に変更",
+      "generation_count": 3,
+      "aspect_ratio": "4:3",
+      "status": "completed",
+      "processing_time": 28.5,
+      "created_at": "2025-10-30T10:30:00+09:00",
+      "generated_images": [
+        {
+          "id": 101,
+          "image_url": "/media/generated/user_1/image_101.png",
+          "thumbnail_url": "/media/generated/user_1/image_101.png",
+          "brightness_adjustment": 0,
+          "expires_at": "2025-11-29T10:30:00+09:00",
+          "created_at": "2025-10-30T10:30:10+09:00"
         },
-        "prompt": "背景を白に変更",
-        "generation_count": 3,
-        "status": "completed",
-        "generated_images": [
-          {
-            "image_id": 101,
-            "thumbnail_url": "/media/generated/user_1/thumb_101.png"
-          },
-          {
-            "image_id": 102,
-            "thumbnail_url": "/media/generated/user_1/thumb_102.png"
-          },
-          {
-            "image_id": 103,
-            "thumbnail_url": "/media/generated/user_1/thumb_103.png"
-          }
-        ],
-        "created_at": "2025-10-30T10:30:00+09:00",
-        "processing_time": 28.5
-      }
-    ]
+        {
+          "id": 102,
+          "image_url": "/media/generated/user_1/image_102.png",
+          "thumbnail_url": "/media/generated/user_1/image_102.png",
+          "brightness_adjustment": 0,
+          "expires_at": "2025-11-29T10:30:00+09:00",
+          "created_at": "2025-10-30T10:30:18+09:00"
+        },
+        {
+          "id": 103,
+          "image_url": "/media/generated/user_1/image_103.png",
+          "thumbnail_url": "/media/generated/user_1/image_103.png",
+          "brightness_adjustment": 0,
+          "expires_at": "2025-11-29T10:30:00+09:00",
+          "created_at": "2025-10-30T10:30:28+09:00"
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "per_page": 20,
+    "total_pages": 3,
+    "total_count": 50
   }
 }
 ```
+
+**注意事項**:
+- キャンセル済み（`status='cancelled'`）の変換は一覧から除外されます
+- 削除済み（`is_deleted=True`）の変換も一覧から除外されます
 
 ---
 
@@ -626,49 +642,58 @@ GET /api/v1/gallery/42/
 **成功レスポンス (200 OK)**:
 ```json
 {
-  "success": true,
-  "data": {
-    "conversion_id": 42,
-    "original_image": {
-      "filename": "original.jpg",
-      "url": "/media/uploads/user_1/original.jpg",
-      "size": 2048576
-    },
+  "status": "success",
+  "conversion": {
+    "id": 42,
+    "original_image_url": "/media/uploads/user_1/original.jpg",
+    "original_image_name": "original.jpg",
+    "original_image_size": 2048576,
     "prompt": "背景を白い無地の背景に変更してください",
     "generation_count": 3,
+    "aspect_ratio": "4:3",
     "status": "completed",
+    "processing_time": 28.5,
+    "error_message": null,
+    "created_at": "2025-10-30T10:30:00+09:00",
     "generated_images": [
       {
-        "image_id": 101,
+        "id": 101,
         "image_url": "/media/generated/user_1/image_101.png",
-        "thumbnail_url": "/media/generated/user_1/thumb_101.png",
-        "size": 1536000,
+        "image_name": "generated_101.png",
+        "image_size": 1536000,
         "brightness_adjustment": 0,
-        "created_at": "2025-10-30T10:30:10+09:00",
-        "expires_at": "2025-11-29T10:30:10+09:00"
+        "expires_at": "2025-11-29T10:30:10+09:00",
+        "created_at": "2025-10-30T10:30:10+09:00"
       },
       {
-        "image_id": 102,
+        "id": 102,
         "image_url": "/media/generated/user_1/image_102.png",
-        "thumbnail_url": "/media/generated/user_1/thumb_102.png",
-        "size": 1612800,
+        "image_name": "generated_102.png",
+        "image_size": 1612800,
         "brightness_adjustment": 0,
-        "created_at": "2025-10-30T10:30:18+09:00",
-        "expires_at": "2025-11-29T10:30:18+09:00"
+        "expires_at": "2025-11-29T10:30:18+09:00",
+        "created_at": "2025-10-30T10:30:18+09:00"
       },
       {
-        "image_id": 103,
+        "id": 103,
         "image_url": "/media/generated/user_1/image_103.png",
-        "thumbnail_url": "/media/generated/user_1/thumb_103.png",
-        "size": 1589248,
+        "image_name": "generated_103.png",
+        "image_size": 1589248,
         "brightness_adjustment": 0,
-        "created_at": "2025-10-30T10:30:28+09:00",
-        "expires_at": "2025-11-29T10:30:28+09:00"
+        "expires_at": "2025-11-29T10:30:28+09:00",
+        "created_at": "2025-10-30T10:30:28+09:00"
       }
-    ],
-    "processing_time": 28.5,
-    "created_at": "2025-10-30T10:30:00+09:00"
+    ]
   }
+}
+```
+
+**エラーレスポンス (404 Not Found)**:
+- キャンセル済み変換にアクセスした場合、404エラーを返します
+```json
+{
+  "status": "error",
+  "message": "変換が見つかりません"
 }
 ```
 
@@ -708,19 +733,27 @@ GET /api/v1/gallery/images/101/
 **成功レスポンス (200 OK)**:
 ```json
 {
-  "success": true,
-  "data": {
-    "image_id": 101,
-    "conversion_id": 42,
+  "status": "success",
+  "image": {
+    "id": 101,
     "image_url": "/media/generated/user_1/image_101.png",
-    "thumbnail_url": "/media/generated/user_1/thumb_101.png",
-    "size": 1536000,
+    "image_name": "generated_101.png",
+    "image_size": 1536000,
     "brightness_adjustment": 10,
+    "expires_at": "2025-11-29T10:30:10+09:00",
     "created_at": "2025-10-30T10:30:10+09:00",
-    "expires_at": "2025-11-29T10:30:10+09:00"
+    "conversion": {
+      "id": 42,
+      "original_image_url": "/media/uploads/user_1/original.jpg",
+      "aspect_ratio": "4:3",
+      "prompt": "背景を白い無地の背景に変更してください"
+    }
   }
 }
 ```
+
+**エラーレスポンス (404 Not Found)**:
+- キャンセル済み変換の画像にアクセスした場合、404エラーを返します
 
 ---
 
@@ -993,13 +1026,62 @@ Content-Type: application/json
 ### 接続エンドポイント
 
 ```
-wss://your-domain.com/ws/convert/{job_id}/
+wss://your-domain.com/ws/conversion/{conversion_id}/
 ```
+
+**注意**: `conversion_id`は数値ID（例: `42`）です。
+
+### 認証・認可
+
+- WebSocket接続時、Djangoセッション認証が自動的に適用されます
+- 変換履歴の所有者のみ接続可能（他ユーザーの変換には接続できません）
+- 未認証ユーザーは接続が拒否されます
 
 ### 接続例
 
+#### 方法1: ConversionWebSocketクラスを使用（推奨）
+
 ```javascript
-const socket = new WebSocket(`wss://your-domain.com/ws/convert/job_abc123/`);
+// websocket-client.jsが読み込まれている必要があります
+const ws = new window.ConversionWebSocket(conversionId, {
+  reconnectInterval: 3000,
+  maxReconnectAttempts: 5,
+  enableFallback: true,
+  fallbackPollInterval: 4000,
+});
+
+// 進捗更新イベント
+ws.on('progress', (data) => {
+  console.log('進捗:', data.progress, '%');
+  console.log('現在:', data.current, '/', data.total);
+  console.log('メッセージ:', data.message);
+});
+
+// 完了イベント
+ws.on('completed', (data) => {
+  console.log('完了:', data.images);
+});
+
+// 失敗イベント
+ws.on('failed', (data) => {
+  console.error('失敗:', data.error);
+});
+
+// キャンセルイベント
+ws.on('cancelled', (data) => {
+  console.log('キャンセルされました');
+});
+
+// 接続開始
+ws.connect();
+```
+
+#### 方法2: ネイティブWebSocket APIを使用
+
+```javascript
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const wsUrl = `${protocol}//${window.location.host}/ws/conversion/${conversionId}/`;
+const socket = new WebSocket(wsUrl);
 
 socket.onopen = () => {
   console.log('WebSocket接続確立');
@@ -1025,44 +1107,96 @@ socket.onclose = () => {
 ```json
 {
   "type": "progress",
-  "data": {
-    "job_id": "job_abc123",
-    "status": "processing",
-    "current": 2,
-    "total": 5,
-    "percentage": 40,
-    "message": "画像 2/5 枚目を生成中..."
-  }
+  "message": "生成画像を保存中... (2/5)",
+  "progress": 75,
+  "status": "processing",
+  "current": 2,
+  "currentCount": 2,
+  "total": 5,
+  "totalCount": 5
 }
 ```
+
+**フィールド説明**:
+- `type`: メッセージタイプ（`"progress"`）
+- `message`: 進捗メッセージ（日本語）
+- `progress`: 進捗パーセンテージ（0-100）
+- `status`: ステータス（`"processing"`）
+- `current`: 現在処理中の画像番号（1から開始）
+- `currentCount`: `current`の互換性フィールド（同じ値）
+- `total`: 生成予定の総枚数
+- `totalCount`: `total`の互換性フィールド（同じ値）
 
 #### 完了通知
 ```json
 {
   "type": "completed",
-  "data": {
-    "job_id": "job_abc123",
-    "conversion_id": 42,
-    "generated_images": [
-      {
-        "image_id": 101,
-        "thumbnail_url": "/media/generated/user_1/thumb_101.png"
-      }
-    ],
-    "processing_time": 28.5
-  }
+  "message": "画像変換が完了しました！",
+  "images": [
+    {
+      "id": 101,
+      "url": "/media/generated/user_1/image_101.png",
+      "name": "generated_101.png",
+      "description": ""
+    },
+    {
+      "id": 102,
+      "url": "/media/generated/user_1/image_102.png",
+      "name": "generated_102.png",
+      "description": ""
+    }
+  ]
 }
 ```
 
-#### エラー通知
+#### 失敗通知
 ```json
 {
-  "type": "error",
-  "data": {
-    "job_id": "job_abc123",
-    "error_message": "API rate limit exceeded"
-  }
+  "type": "failed",
+  "message": "画像変換に失敗しました",
+  "error": "API rate limit exceeded"
 }
+```
+
+#### キャンセル通知
+```json
+{
+  "type": "cancelled",
+  "message": "画像変換はキャンセルされました"
+}
+```
+
+### フォールバック機能
+
+`ConversionWebSocket`クラスは、WebSocket接続に失敗した場合、自動的にポーリング（HTTP API）にフォールバックします。
+
+- **再接続試行**: 最大5回、3秒間隔で再接続を試みます
+- **フォールバック**: 再接続に失敗した場合、4秒間隔で`GET /api/v1/convert/{conversion_id}/status/`をポーリングします
+- **自動切り替え**: WebSocket接続が復旧した場合、自動的にWebSocketに戻ります
+
+### 複数変換の同時監視
+
+複数の変換を同時に監視する場合は、`MultipleConversionWebSocket`クラスを使用します：
+
+```javascript
+const wsManager = new window.MultipleConversionWebSocket([1, 2, 3], {
+  reconnectInterval: 3000,
+  maxReconnectAttempts: 5,
+  enableFallback: true,
+  fallbackPollInterval: 4000,
+});
+
+// 進捗更新イベント（変換ID付き）
+wsManager.on('progress', ({ conversionId, progress, status, message, current, total }) => {
+  console.log(`変換 ${conversionId}: ${current}/${total}`);
+});
+
+// 完了イベント（変換ID付き）
+wsManager.on('completed', ({ conversionId, images }) => {
+  console.log(`変換 ${conversionId} 完了:`, images);
+});
+
+wsManager.connect();
 ```
 
 ---
@@ -1375,3 +1509,4 @@ def gallery_list_view(request):
 
 **文書履歴**:
 - 2025-10-30: 初版作成
+- 2025-11-01: WebSocket仕様更新、キャンセル済み変換の除外処理を追加

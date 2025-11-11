@@ -356,9 +356,12 @@
   - [x] 各画像生成（Gemini API呼び出し）
   - [x] 生成画像保存
   - [x] GeneratedImageレコード作成
+  - [x] WebSocket進捗通知（current/total情報含む）
+  - [x] 画像保存時の個別進捗通知（70-90%で更新）
   - [x] 利用回数更新
   - [x] 処理時間記録
-  - [x] ステータス更新（completed/failed）
+  - [x] ステータス更新（completed/failed/cancelled）
+  - [x] キャンセル処理（ConversionCancelledError）
   - [x] エラー時の処理
 
 #### Celery Beat設定
@@ -442,6 +445,7 @@
 ##### api/views/gallery.py
 - [x] `GET /api/v1/gallery/` - 一覧取得
   - [x] ユーザーフィルタリング
+  - [x] キャンセル済み変換の除外（`.exclude(status='cancelled')`）
   - [x] ページネーション実装
   - [x] ソート機能（created_at）
   - [x] 検索機能（プロンプト部分一致）
@@ -450,6 +454,7 @@
 
 - [x] `GET /api/v1/gallery/{conversion_id}/` - 詳細取得
   - [x] 権限チェック（自分のデータのみ）
+  - [x] キャンセル済み変換の除外（404を返す）
   - [x] Before/After画像情報
   - [x] 生成画像一覧
 
@@ -461,11 +466,21 @@
 #### 画像詳細API実装
 - [x] `GET /api/v1/gallery/images/{image_id}/` - 画像詳細
   - [x] 権限チェック
+  - [x] キャンセル済み変換の画像を除外（404を返す）
   - [x] 画像情報取得
 
 - [x] `DELETE /api/v1/gallery/images/{image_id}/` - 画像削除
   - [x] 権限チェック
+  - [x] キャンセル済み変換の画像を除外（404を返す）
   - [x] 論理削除
+
+- [x] `GET /api/v1/gallery/images/{image_id}/download/` - 画像ダウンロード
+  - [x] 権限チェック
+  - [x] キャンセル済み変換の画像を除外（404を返す）
+
+- [x] `PATCH /api/v1/gallery/images/{image_id}/brightness/` - 輝度調整
+  - [x] 権限チェック
+  - [x] キャンセル済み変換の画像を除外（404を返す）
 
 #### 輝度調整API実装
 
@@ -635,18 +650,28 @@
 - [x] WebSocketルーティング（画像進捗はポーリング採用のため新規ルートは不要）
 
 ###### images/consumers.py
-- [x] ConversionConsumer作成済（リアルタイム配信対応済／今回のポーリング実装では利用せず）
+- [x] ImageConversionConsumer作成（リアルタイム配信対応）
   - [x] WebSocket接続処理
-  - [x] 進捗更新メッセージ送信
+  - [x] 認証・権限チェック
+  - [x] 進捗更新メッセージ送信（current/total情報含む）
   - [x] 完了通知
-  - [x] エラー通知
+  - [x] 失敗通知
+  - [x] キャンセル通知
 
 ##### static/js/progress.js
-- [x] WebSocket接続（またはポーリング）
-- [x] 進捗更新処理
+- [x] WebSocket接続（ConversionWebSocketクラス使用）
+- [x] フォールバック機能（ポーリング）
+- [x] 進捗更新処理（current/total情報対応）
 - [x] 完了時リダイレクト（ギャラリー）
 - [x] エラー表示
 - [x] キャンセル処理
+
+##### static/js/websocket-client.js（新規）
+- [x] ConversionWebSocketクラス実装
+- [x] MultipleConversionWebSocketクラス実装
+- [x] 再接続機能
+- [x] フォールバック（ポーリング）機能
+- [x] イベントハンドリング
 
 #### ギャラリー画面
 
@@ -958,7 +983,7 @@
 - [x] Phase 8: テスト・最適化（85% - パフォーマンス最適化・セキュリティ監査完了）
 - [x] Phase 9: デプロイ準備（90% - ヘルスチェック、Gunicorn/Nginx設定、バックアップ/デプロイスクリプト、ドキュメント完了）
 
-**最終更新**: 2025-11-01
+**最終更新**: 2025-11-01（WebSocket実装完了、キャンセル済み変換の除外処理追加）
 
 ### 完了基準
 

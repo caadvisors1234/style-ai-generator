@@ -212,6 +212,7 @@ class UserProfile(models.Model):
 - `processing`: 処理中
 - `completed`: 完了
 - `failed`: 失敗
+- `cancelled`: キャンセル済み（ユーザーがキャンセルした変換。ギャラリーからは除外される）
 
 **インデックス**:
 - `user_id, created_at DESC` (複合INDEX)
@@ -422,7 +423,7 @@ CHECK (generation_count > 0 AND generation_count <= 5);
 
 ALTER TABLE image_conversion
 ADD CONSTRAINT check_status_valid
-CHECK (status IN ('pending', 'processing', 'completed', 'failed'));
+CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'cancelled'));
 ```
 
 #### GeneratedImage
@@ -878,7 +879,7 @@ CREATE TABLE image_conversion (
     original_image_size INTEGER NOT NULL,
     prompt TEXT NOT NULL,
     generation_count INTEGER NOT NULL CHECK (generation_count > 0 AND generation_count <= 5),
-    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'cancelled')),
     processing_time DECIMAL(10, 3),
     error_message TEXT,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
@@ -909,3 +910,4 @@ COMMENT ON TABLE generated_image IS '生成画像テーブル';
 
 **文書履歴**:
 - 2025-10-30: 初版作成
+- 2025-11-01: cancelledステータスを追加、CHECK制約を更新

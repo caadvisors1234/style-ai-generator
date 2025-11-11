@@ -134,6 +134,10 @@
             message: data.message,
             progress: data.progress,
             status: data.status,
+            current: data.current,
+            currentCount: data.currentCount,
+            total: data.total,
+            totalCount: data.totalCount,
           });
           break;
 
