@@ -1,0 +1,22 @@
+services:
+  web:
+    ports:
+      - "18002:8000"
+    environment:
+      - DEBUG=True
+
+  db:
+    ports:
+      - "15432:5432"
+
+  redis:
+    ports:
+      - "16379:6379"
+
+  celery:
+    environment:
+      - DEBUG=True
+
+  celery-beat:
+    environment:
+      - DEBUG=True
