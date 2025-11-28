@@ -17,6 +17,27 @@
 - Google Cloud認証情報の設定
 
 ## 必要な外部サービスのセットアップ
+※ Docker Compose を利用する場合は、ホスト側に外部ネットワーク `app-network` を1回だけ作成してください（Nginx Proxy Manager などのゲートウェイと同一ネットワークで疎通させるため）。
+```bash
+docker network create app-network
+```
+
+ローカル開発でポート公開したい場合は、`docker-compose.override.yml`（Git管理外）を置くと自動で読まれます。サンプル:
+```yaml
+services:
+  web:
+    ports:
+      - "18002:8000"
+    environment:
+      - DEBUG=True
+  db:
+    ports:
+      - "15432:5432"
+  redis:
+    ports:
+      - "16379:6379"
+```
+本番（VPS）では override を置かずに `docker compose up -d` すれば外部公開なしで起動します。
 
 ### 1. PostgreSQL 14のインストール
 

@@ -35,4 +35,4 @@ RUN chmod +x /app/docker-entrypoint.sh || true
 EXPOSE 8000
 
 # エントリーポイント設定
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
