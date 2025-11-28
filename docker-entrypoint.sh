@@ -13,6 +13,9 @@ while ! nc -z redis 6379; do
 done
 echo "Redis started"
 
+# Ensure required directories exist (bind mount can hide build-time dirs)
+mkdir -p /app/logs /app/staticfiles /app/media
+
 echo "Running migrations..."
 python manage.py migrate --noinput
 
