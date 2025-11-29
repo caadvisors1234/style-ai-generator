@@ -43,7 +43,9 @@ def generated_image_path(instance, filename):
     return f"generated/user_{instance.conversion.user.id}/{new_filename}"
 
 
+ASPECT_RATIO_KEEP_ORIGINAL = 'original'
 ASPECT_RATIO_CHOICES = [
+    (ASPECT_RATIO_KEEP_ORIGINAL, '元画像の比率を維持'),
     ('1:1', '1:1'),
     ('3:4', '3:4'),
     ('4:3', '4:3'),
@@ -56,7 +58,7 @@ ASPECT_RATIO_CHOICES = [
     ('4:5', '4:5'),
 ]
 
-DEFAULT_ASPECT_RATIO = '4:3'
+DEFAULT_ASPECT_RATIO = ASPECT_RATIO_KEEP_ORIGINAL
 
 
 class ImageConversion(models.Model):

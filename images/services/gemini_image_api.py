@@ -30,15 +30,17 @@ class GeminiImageAPIService:
 
     # 使用するモデル
     MODEL_NAME = "gemini-2.5-flash-image"
+    ORIGINAL_ASPECT_RATIO = "original"
 
     # サポートされるアスペクト比
     SUPPORTED_ASPECT_RATIOS = [
+        ORIGINAL_ASPECT_RATIO,
         "1:1", "3:4", "4:3", "9:16", "16:9",
         "3:2", "2:3", "21:9", "9:21", "4:5"
     ]
 
     # デフォルトのアスペクト比
-    DEFAULT_ASPECT_RATIO = "4:3"
+    DEFAULT_ASPECT_RATIO = ORIGINAL_ASPECT_RATIO
 
     @classmethod
     def initialize_client(cls) -> genai.Client:
@@ -207,7 +209,8 @@ class GeminiImageAPIService:
             # 元画像を読み込む
             image_data = cls.load_image(original_image_path)
 
-            # アスペクト比の検証
+            # アスペクト比の検証・解決
+            resolved_aspect_ratio = None
             if aspect_ratio and aspect_ratio not in cls.SUPPORTED_ASPECT_RATIOS:
                 logger.warning(
                     f"Unsupported aspect ratio {aspect_ratio}, "
@@ -216,6 +219,9 @@ class GeminiImageAPIService:
                 aspect_ratio = cls.DEFAULT_ASPECT_RATIO
             elif not aspect_ratio:
                 aspect_ratio = cls.DEFAULT_ASPECT_RATIO
+
+            if aspect_ratio != cls.ORIGINAL_ASPECT_RATIO:
+                resolved_aspect_ratio = aspect_ratio
 
             results = []
 
@@ -231,6 +237,12 @@ class GeminiImageAPIService:
                     )
 
                     # 画像生成
+                    image_config = None
+                    if resolved_aspect_ratio:
+                        image_config = types.ImageConfig(
+                            aspect_ratio=resolved_aspect_ratio,
+                        )
+
                     response = client.models.generate_content(
                         model=cls.MODEL_NAME,
                         contents=[
@@ -242,9 +254,7 @@ class GeminiImageAPIService:
                         ],
                         config=types.GenerateContentConfig(
                             response_modalities=['IMAGE'],
-                            image_config=types.ImageConfig(
-                                aspect_ratio=aspect_ratio,
-                            ),
+                            image_config=image_config,
                             candidate_count=1,
                         ),
                     )
