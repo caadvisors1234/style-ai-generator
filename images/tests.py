@@ -162,8 +162,8 @@ class ImageModelTests(TestCase):
             image_size=200,
         )
 
-        self.assertIsNotNone(image.expires_at)
-        self.assertTrue(image.expires_at > timezone.now())
+        self.assertIsNone(image.expires_at)
+        self.assertFalse(image.is_expired)
 
 
 class DeleteExpiredImagesCommandTests(TestCase):

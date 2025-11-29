@@ -6,7 +6,6 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
-from datetime import timedelta
 import uuid
 import os
 
@@ -220,8 +219,10 @@ class GeneratedImage(models.Model):
         help_text='輝度調整値（-50〜+50）'
     )
     expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
         verbose_name='削除予定日時',
-        help_text='生成日から30日後に自動削除'
+        help_text='保持期限。未設定の場合は自動削除しません'
     )
     is_deleted = models.BooleanField(
         default=False,
@@ -253,24 +254,22 @@ class GeneratedImage(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        保存時にexpires_atを自動設定
-
-        Args:
-            *args: 可変長引数
-            **kwargs: キーワード引数
+        保存時の処理
         """
-        if not self.expires_at:
-            self.expires_at = timezone.now() + timedelta(days=30)
         super().save(*args, **kwargs)
 
     @property
     def is_expired(self):
         """期限切れかどうかを返す"""
+        if not self.expires_at:
+            return False
         return timezone.now() > self.expires_at
 
     @property
     def days_until_expiration(self):
         """削除までの残り日数を返す"""
+        if not self.expires_at:
+            return None
         delta = self.expires_at - timezone.now()
         return max(0, delta.days)
 

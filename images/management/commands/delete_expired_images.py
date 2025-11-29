@@ -1,8 +1,8 @@
 """
 期限切れ画像削除管理コマンド
 
-生成から30日経過した画像を物理削除する。
-Celery Beatから定期的に実行される想定。
+デフォルトでは何も削除しません（永続保存方針）。
+明示的に --force を指定した場合のみ、期限切れの物理ファイルを削除します。
 """
 
 import os
@@ -46,6 +46,15 @@ class Command(BaseCommand):
         """
         dry_run = options.get('dry_run', False)
         force = options.get('force', False)
+
+        # 永続保存をデフォルトとするため、明示的な --force なしでは何もしない
+        if not force:
+            self.stdout.write(
+                self.style.WARNING(
+                    '画像は永続保存の方針です。削除を行う場合は --force を指定してください。'
+                )
+            )
+            return
 
         now = timezone.now()
 
