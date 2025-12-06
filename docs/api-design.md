@@ -520,7 +520,7 @@ GET /api/v1/prompts/
         "id": 1,
         "name": "バックスタイル生成",
         "prompt": "正面写真から背面のヘアスタイルを生成してください",
-        "category": "style"
+        "category": "hair_style"
       },
       {
         "id": 2,
@@ -532,7 +532,7 @@ GET /api/v1/prompts/
         "id": 3,
         "name": "髪の艶感増加",
         "prompt": "髪に自然な艶と輝きを追加し、健康的な印象を強調してください",
-        "category": "enhancement"
+        "category": "other"
       },
       {
         "id": 4,
@@ -544,12 +544,21 @@ GET /api/v1/prompts/
         "id": 5,
         "name": "プロフェッショナルな印象",
         "prompt": "プロフェッショナルで洗練された印象の画像に変換してください",
-        "category": "professional"
+        "category": "other"
       }
     ]
   }
 }
 ```
+
+利用可能なカテゴリ値（value: label）:
+- composition: 構図
+- hair_style: 髪型/スタイル
+- hair_color: 髪色
+- background: 背景
+- texture: 質感
+- tone: トーン
+- other: その他
 
 ---
 

@@ -5,7 +5,7 @@
     "fields": {
       "name": "プロフェッショナル",
       "prompt": "Transform this image into a professional, high-quality photograph suitable for business use. Enhance lighting, adjust colors for a polished look, and ensure the composition is clean and professional.",
-      "category": "professional",
+      "category": "other",
       "description": "ビジネス用途に適したプロフェッショナルな写真に変換します",
       "is_active": true,
       "display_order": 1,
@@ -19,7 +19,7 @@
     "fields": {
       "name": "ナチュラル",
       "prompt": "Convert this image to a natural, soft-toned photograph with warm lighting. Emphasize natural beauty and create a relaxed, friendly atmosphere.",
-      "category": "style",
+      "category": "hair_style",
       "description": "自然で柔らかい雰囲気の写真に変換します",
       "is_active": true,
       "display_order": 2,
@@ -33,7 +33,7 @@
     "fields": {
       "name": "スタジオ風",
       "prompt": "Transform this into a studio-quality photograph with professional lighting setup. Create clean, crisp images with perfect exposure and sharp details, similar to professional studio photography.",
-      "category": "style",
+      "category": "hair_style",
       "description": "スタジオで撮影したような高品質な写真に変換します",
       "is_active": true,
       "display_order": 3,
@@ -47,7 +47,7 @@
     "fields": {
       "name": "明るく",
       "prompt": "Brighten this image significantly while maintaining natural skin tones. Enhance overall luminosity and create an airy, light-filled atmosphere.",
-      "category": "enhancement",
+      "category": "other",
       "description": "画像全体を明るく、爽やかな印象に変換します",
       "is_active": true,
       "display_order": 4,
@@ -61,7 +61,7 @@
     "fields": {
       "name": "美肌効果",
       "prompt": "Enhance skin texture and appearance in this image. Smooth skin while preserving natural details, remove blemishes, and create a flawless yet natural look.",
-      "category": "enhancement",
+      "category": "other",
       "description": "肌を滑らかで美しく見せる効果を追加します",
       "is_active": true,
       "display_order": 5,
@@ -131,7 +131,7 @@
     "fields": {
       "name": "ヴィンテージ",
       "prompt": "Transform this image into a vintage-style photograph. Add retro color grading, subtle grain, and nostalgic atmosphere reminiscent of classic photography.",
-      "category": "style",
+      "category": "hair_style",
       "description": "レトロでヴィンテージな雰囲気に変換します",
       "is_active": true,
       "display_order": 10,
@@ -145,7 +145,7 @@
     "fields": {
       "name": "モノクロ",
       "prompt": "Convert this image to elegant black and white. Create rich tonal range with deep blacks and bright whites, emphasizing contrast and texture.",
-      "category": "style",
+      "category": "hair_style",
       "description": "印象的なモノクロ写真に変換します",
       "is_active": true,
       "display_order": 11,
@@ -159,7 +159,7 @@
     "fields": {
       "name": "ハイコントラスト",
       "prompt": "Enhance the contrast of this image dramatically. Create bold, striking visuals with deep shadows and bright highlights for maximum impact.",
-      "category": "enhancement",
+      "category": "other",
       "description": "コントラストを強調してインパクトのある写真にします",
       "is_active": true,
       "display_order": 12,
@@ -173,7 +173,7 @@
     "fields": {
       "name": "ソフトフォーカス",
       "prompt": "Apply a soft focus effect to this image. Create a dreamy, ethereal atmosphere with gentle blur while maintaining subject recognition.",
-      "category": "style",
+      "category": "hair_style",
       "description": "柔らかでドリーミーな雰囲気に変換します",
       "is_active": true,
       "display_order": 13,
@@ -187,7 +187,7 @@
     "fields": {
       "name": "鮮やかに",
       "prompt": "Enhance color saturation and vibrancy in this image. Make colors pop while maintaining natural appearance and avoiding oversaturation.",
-      "category": "enhancement",
+      "category": "other",
       "description": "色彩を鮮やかで生き生きとした印象にします",
       "is_active": true,
       "display_order": 14,
@@ -201,7 +201,7 @@
     "fields": {
       "name": "フィルム風",
       "prompt": "Transform this digital image to look like it was shot on classic film. Add subtle grain, authentic film colors, and characteristic tonal curves of analog photography.",
-      "category": "style",
+      "category": "hair_style",
       "description": "フィルムカメラで撮影したような質感に変換します",
       "is_active": true,
       "display_order": 15,

@@ -290,11 +290,12 @@ class PromptPreset(models.Model):
     ワンタッププロンプトの管理
     """
     CATEGORY_CHOICES = [
-        ('style', 'スタイル'),
+        ('composition', '構図'),
+        ('hair_style', '髪型/スタイル'),
+        ('hair_color', '髪色'),
         ('background', '背景'),
-        ('enhancement', '強調'),
+        ('texture', '質感'),
         ('tone', 'トーン'),
-        ('professional', 'プロフェッショナル'),
         ('other', 'その他'),
     ]
 
