@@ -27,7 +27,7 @@
     conversions.forEach((conversion) => {
       // 生成画像が複数ある場合は、それぞれカードを作成
       const generatedImages = conversion.generated_images || [];
-      const displayTitle = conversion.preset_name || conversion.prompt || '（プロンプト未設定）';
+      const displayTitle = conversion.preset_name || conversion.prompt || '（指示なし）';
 
       if (generatedImages.length === 0) {
         // 生成画像がない場合（処理中など）は元画像を表示

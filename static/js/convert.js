@@ -40,7 +40,7 @@
     const promptText = promptMeta.prompt || '';
 
     if (!promptText) {
-      notifyWarning('プロンプトを入力するかプリセットを選択してください');
+      notifyWarning('指示文を入力するか、おすすめフレーズを選択してください');
       return;
     }
 

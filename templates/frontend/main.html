@@ -48,7 +48,7 @@
 <section style="margin-top: 4rem;">
     <h2 style="margin-bottom: 2rem;">変換設定</h2>
     <div style="margin-bottom: 2rem;">
-        <label class="form-label">プリセットプロンプト</label>
+        <label class="form-label">おすすめフレーズ（例文）</label>
 
         <!-- 検索ボックス -->
         <div class="mb-3">
@@ -56,7 +56,7 @@
                 type="text"
                 id="prompt-search-input"
                 class="form-control"
-                placeholder="プリセットを検索..."
+                placeholder="仕上がりイメージの例文を検索..."
                 style="max-width: 400px;">
         </div>
 
@@ -109,12 +109,12 @@
 
         <!-- プリセットが見つからない場合のメッセージ -->
         <div id="prompt-no-results" class="text-muted small mt-2" style="display: none;">
-            プリセットが見つかりませんでした
+            候補が見つかりませんでした
         </div>
     </div>
     <div style="margin-bottom: 2rem;">
-        <label for="custom-prompt" class="form-label">カスタムプロンプト</label>
-        <textarea id="custom-prompt" class="form-control" rows="4" placeholder="変換内容を具体的に記述してください"></textarea>
+        <label for="custom-prompt" class="form-label">自由入力（あなたの指示）</label>
+        <textarea id="custom-prompt" class="form-control" rows="4" placeholder="仕上がりイメージや要望を具体的に記述してください"></textarea>
     </div>
     <div class="row g-3" style="margin-bottom: 2rem;">
         <div class="col-md-3">
