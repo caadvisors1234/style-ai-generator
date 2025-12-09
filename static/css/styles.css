@@ -671,6 +671,12 @@ textarea.form-control {
     color: var(--text-primary);
 }
 
+.brand-logo {
+    height: 32px;
+    width: auto;
+    display: block;
+}
+
 .navbar-brand:hover {
     opacity: 0.8;
     color: var(--text-primary);
