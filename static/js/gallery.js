@@ -27,6 +27,7 @@
     conversions.forEach((conversion) => {
       // 生成画像が複数ある場合は、それぞれカードを作成
       const generatedImages = conversion.generated_images || [];
+      const displayTitle = conversion.preset_name || conversion.prompt || '（プロンプト未設定）';
 
       if (generatedImages.length === 0) {
         // 生成画像がない場合（処理中など）は元画像を表示
@@ -34,7 +35,7 @@
         node.querySelector('.gallery-thumb').src = conversion.original_image_url;
 
         // 処理中の場合は状態を表示
-        let titleText = conversion.prompt || '（プロンプト未設定）';
+        let titleText = displayTitle;
         if (conversion.status === 'processing') {
           titleText = '⏳ 処理中... - ' + titleText;
         } else if (conversion.status === 'pending') {
@@ -62,7 +63,7 @@
         generatedImages.forEach((image, index) => {
           const node = template.content.cloneNode(true);
           node.querySelector('.gallery-thumb').src = image.image_url;
-          const promptText = conversion.prompt || '（プロンプト未設定）';
+          const promptText = displayTitle;
           const suffix = generatedImages.length > 1 ? ` (${index + 1}/${generatedImages.length})` : '';
           node.querySelector('.gallery-title').textContent = promptText + suffix;
           const createdAt = new Date(image.created_at);

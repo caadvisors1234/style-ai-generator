@@ -9,6 +9,7 @@
   const selectedCountId = 'selected-count';
 
   let selectedText = '';
+  let selectedPreset = null;
   let allPrompts = [];
   let allCategories = [];
   let favoritePrompts = [];
@@ -258,6 +259,7 @@
     } else {
       // 単一選択モード
       selectedText = target.dataset.prompt;
+      selectedPreset = preset || null;
       document.querySelectorAll('.preset-button').forEach((btn) => btn.classList.remove('active'));
       target.classList.add('active');
 
@@ -279,6 +281,7 @@
   function toggleMultiSelectMode() {
     isMultiSelectMode = !isMultiSelectMode;
     selectedPresets.clear();
+    selectedPreset = null;
 
     const toggleBtn = document.getElementById(multiSelectToggleId);
     const indicator = document.getElementById(multiSelectIndicatorId);
@@ -507,8 +510,44 @@
         const customText = custom ? custom.value.trim() : '';
         return customText || selectedText;
       },
+      getSelectionMeta: () => {
+        const custom = document.getElementById(customPromptId);
+        const customText = custom ? custom.value.trim() : '';
+
+        // カスタム入力または複数選択時はプリセット情報を付与しない
+        if (customText) {
+          return {
+            prompt: customText,
+            presetId: null,
+            presetName: null,
+          };
+        }
+
+        if (isMultiSelectMode && selectedPresets.size > 0) {
+          return {
+            prompt: (document.getElementById(customPromptId)?.value || '').trim() || selectedText,
+            presetId: null,
+            presetName: null,
+          };
+        }
+
+        if (selectedPreset) {
+          return {
+            prompt: selectedText,
+            presetId: selectedPreset.id,
+            presetName: selectedPreset.name,
+          };
+        }
+
+        return {
+          prompt: selectedText,
+          presetId: null,
+          presetName: null,
+        };
+      },
       clearSelection: () => {
         selectedText = '';
+        selectedPreset = null;
         selectedPresets.clear();
         isMultiSelectMode = false;
         document.querySelectorAll('.preset-button').forEach((btn) => btn.classList.remove('active'));

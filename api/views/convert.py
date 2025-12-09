@@ -64,6 +64,12 @@ def convert_start(request):
         generation_count = int(request.POST.get('generation_count', 1))
 
         aspect_ratio = request.POST.get('aspect_ratio') or GeminiImageAPIService.DEFAULT_ASPECT_RATIO
+        preset_id_raw = request.POST.get('preset_id')
+        preset_name = request.POST.get('preset_name')
+        try:
+            preset_id = int(preset_id_raw) if preset_id_raw is not None else None
+        except ValueError:
+            preset_id = None
 
         # バリデーション
         if not image_file:
@@ -127,6 +133,8 @@ def convert_start(request):
                 original_image_name=upload_result['file_name'],
                 original_image_size=upload_result['file_size'],
                 prompt=prompt,
+                preset_id=preset_id,
+                preset_name=preset_name,
                 generation_count=generation_count,
                 aspect_ratio=aspect_ratio,
                 status='pending'

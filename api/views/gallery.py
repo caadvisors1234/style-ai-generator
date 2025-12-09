@@ -76,7 +76,7 @@ def gallery_list(request):
         # 検索フィルタ
         if search:
             conversions = conversions.filter(
-                Q(prompt__icontains=search)
+                Q(prompt__icontains=search) | Q(preset_name__icontains=search)
             )
 
         # ソート
@@ -107,7 +107,9 @@ def gallery_list(request):
                 'id': conversion.id,
                 'original_image_url': f"/media/{conversion.original_image_path}",
                 'original_image_name': conversion.original_image_name,
-                'prompt': conversion.prompt[:100] + '...' if len(conversion.prompt) > 100 else conversion.prompt,
+                'prompt': conversion.prompt,
+                'preset_id': conversion.preset_id,
+                'preset_name': conversion.preset_name,
                 'generation_count': conversion.generation_count,
                 'aspect_ratio': conversion.aspect_ratio,
                 'status': conversion.status,
@@ -320,7 +322,9 @@ def image_detail(request, image_id):
                     'id': image.conversion.id,
                     'original_image_url': f"/media/{image.conversion.original_image_path}",
                     'aspect_ratio': image.conversion.aspect_ratio,
-                    'prompt': image.conversion.prompt[:100] + '...' if len(image.conversion.prompt) > 100 else image.conversion.prompt
+                    'prompt': image.conversion.prompt,
+                    'preset_id': image.conversion.preset_id,
+                    'preset_name': image.conversion.preset_name,
                 }
             }
         })

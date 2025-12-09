@@ -94,6 +94,19 @@ class ImageConversion(models.Model):
         verbose_name='使用プロンプト',
         help_text='画像変換に使用したプロンプト'
     )
+    preset_id = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name='プリセットID',
+        help_text='選択されたプリセットのID'
+    )
+    preset_name = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True,
+        verbose_name='プリセット表示名',
+        help_text='選択されたプリセットの表示名（日本語）'
+    )
     generation_count = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         verbose_name='生成枚数',

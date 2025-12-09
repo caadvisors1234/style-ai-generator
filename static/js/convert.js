@@ -33,8 +33,13 @@
       return;
     }
 
-    const prompt = window.PromptManager ? window.PromptManager.getPrompt() : '';
-    if (!prompt) {
+    const promptMeta = window.PromptManager && window.PromptManager.getSelectionMeta
+      ? window.PromptManager.getSelectionMeta()
+      : { prompt: window.PromptManager ? window.PromptManager.getPrompt() : '' };
+
+    const promptText = promptMeta.prompt || '';
+
+    if (!promptText) {
       notifyWarning('プロンプトを入力するかプリセットを選択してください');
       return;
     }
@@ -58,7 +63,13 @@
 
         const formData = new FormData();
         formData.append('image', sourceFile, sourceFile.name);
-        formData.append('prompt', prompt);
+        formData.append('prompt', promptText);
+        if (promptMeta && promptMeta.presetId !== null && promptMeta.presetId !== undefined) {
+          formData.append('preset_id', promptMeta.presetId);
+        }
+        if (promptMeta && promptMeta.presetName) {
+          formData.append('preset_name', promptMeta.presetName);
+        }
         formData.append('generation_count', generationSelect.value);
         if (aspectSelect) {
           formData.append('aspect_ratio', aspectSelect.value);

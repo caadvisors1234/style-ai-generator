@@ -17,7 +17,15 @@
   const state = {
     conversionId: null,
     imageId: null,
+    savedBrightness: 0,
   };
+
+  function updatePreview() {
+    const adjustment = Number(brightnessRange.value || 0);
+    const factor = 1 + (adjustment / 100);
+    generatedImg.style.filter = `brightness(${factor})`;
+    brightnessValue.textContent = String(adjustment);
+  }
 
   async function loadDetail(imageId) {
     const data = await APIClient.get(`/api/v1/gallery/images/${imageId}/`);
@@ -33,9 +41,11 @@
     originalImg.src = bustCache(image.conversion.original_image_url);
     generatedImg.src = bustCache(image.image_url);
     createdAtEl.textContent = new Date(image.created_at).toLocaleString('ja-JP');
-    promptEl.textContent = image.conversion.prompt;
-    brightnessRange.value = image.brightness_adjustment ?? 0;
-    brightnessValue.textContent = brightnessRange.value;
+    promptEl.textContent = image.conversion.prompt || '（設定なし）';
+    state.savedBrightness = image.brightness_adjustment ?? 0;
+    brightnessRange.value = state.savedBrightness;
+    generatedImg.style.filter = 'brightness(1)';
+    brightnessValue.textContent = String(brightnessRange.value);
     downloadLink.href = `/api/v1/gallery/images/${image.id}/download/`;
   }
 
@@ -48,7 +58,9 @@
       const imageUrl = image.image_url;
       const separator = imageUrl.includes('?') ? '&' : '?';
       generatedImg.src = `${imageUrl}${separator}t=${Date.now()}`;
-      brightnessRange.value = String(image.brightness_adjustment ?? 0);
+      state.savedBrightness = image.brightness_adjustment ?? 0;
+      brightnessRange.value = String(state.savedBrightness);
+      generatedImg.style.filter = 'brightness(1)';
       brightnessValue.textContent = brightnessRange.value;
       notifySuccess(image.message || '輝度を調整しました');
     } catch (error) {
@@ -75,11 +87,11 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     brightnessRange.addEventListener('input', () => {
-      brightnessValue.textContent = brightnessRange.value;
+      updatePreview();
     });
     brightnessReset.addEventListener('click', async () => {
       brightnessRange.value = 0;
-      brightnessValue.textContent = '0';
+      updatePreview();
       // リセット時は輝度0で適用
       await applyBrightness();
     });
