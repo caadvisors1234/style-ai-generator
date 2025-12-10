@@ -883,3 +883,212 @@ main.container {
     margin-top: var(--spacing-component);
     margin-bottom: var(--spacing-section);
 }
+
+/* ================================================
+   Loading Animation - ローディングアニメーション
+   ================================================ */
+
+/* Keyframes */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-glow {
+    0% { box-shadow: 0 0 0 0 rgba(222, 103, 135, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(222, 103, 135, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(222, 103, 135, 0); }
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes gradient-bg {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Loading Card */
+.loading-card {
+    position: relative;
+    background: var(--bg-primary);
+    border-radius: 1rem;
+    padding: 3rem 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    text-align: center;
+    max-width: 600px;
+    margin: 4rem auto;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.loading-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #DE6787, #FDA4AF, #DE6787);
+    background-size: 200% 200%;
+    animation: gradient-bg 3s ease infinite;
+}
+
+/* AI Spinner */
+.ai-spinner {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 2rem;
+    border-radius: 50%;
+    background: var(--bg-primary);
+}
+
+.ai-spinner::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: var(--accent-color);
+    border-right-color: var(--accent-color);
+    animation: spin 1.5s linear infinite;
+}
+
+.ai-spinner::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-bottom-color: rgba(222, 103, 135, 0.5);
+    border-left-color: rgba(222, 103, 135, 0.5);
+    animation: spin 2s linear infinite reverse;
+}
+
+.ai-spinner-core {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    animation: pulse-glow 2s infinite;
+}
+
+/* Status Text */
+.status-text {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    min-height: 1.8rem;
+    transition: opacity 0.3s ease;
+}
+
+.sub-status-text {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+}
+
+/* Progress Bar Custom */
+.progress-bar-custom-container {
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+    position: relative;
+}
+
+.progress-bar-custom {
+    height: 100%;
+    background: var(--accent-color);
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.progress-bar-custom::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-20deg) translateX(-150%);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0%   { transform: skewX(-20deg) translateX(-150%); }
+    100% { transform: skewX(-20deg) translateX(150%); }
+}
+
+/* Tips Container */
+.tips-container {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.tips-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent-color);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tips-text {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    animation: fade-in-up 0.5s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Multiple Processing specific */
+.conversion-status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.status-dot-pending { background-color: var(--text-muted); }
+.status-dot-processing { background-color: var(--accent-color); animation: pulse-glow 1.5s infinite; }
+.status-dot-completed { background-color: var(--success-color); }
+.status-dot-failed { background-color: var(--danger-color); }
+

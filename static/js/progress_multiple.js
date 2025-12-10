@@ -18,7 +18,9 @@
   const overallBar = document.getElementById('overall-progress-bar');
   const overallCounter = document.getElementById('overall-counter');
   const overallMessage = document.getElementById('overall-message');
+  const overallStatusPhaseEl = document.getElementById('overall-status-phase');
   const cancelBtn = document.getElementById('cancel-all-conversions');
+  const tipsTextEl = document.getElementById('tips-text');
 
   if (!container || !template || !overallBar || !overallCounter || !overallMessage) {
     const errorMessage = '必要な要素が見つかりません';
@@ -30,7 +32,58 @@
   const conversions = {};
   let wsManager = null;
   let fallbackTimer = null;
+  let tipsTimer = null;
   const ACTIVE_STATUSES = new Set(['pending', 'processing']);
+
+  // 定数定義
+  const PHASES = [
+    { threshold: 0, text: '準備中...', sub: 'システムを初期化しています' },
+    { threshold: 10, text: '並列処理中...', sub: '複数の画像を同時に処理しています' },
+    { threshold: 30, text: 'AI生成進行中', sub: '最適なパラメータを計算中' },
+    { threshold: 50, text: 'スタイル適用中...', sub: 'ディテールを描き込んでいます' },
+    { threshold: 80, text: '仕上げ中...', sub: '最終調整を行っています' },
+    { threshold: 100, text: '完了', sub: 'ギャラリーへ移動します' }
+  ];
+
+  const TIPS = [
+    '複数の画像を一度に処理することで、時間を効率的に使えます。',
+    '完了した画像から順次ギャラリーに保存されます。',
+    'AIは各画像の特性に合わせて最適な変換を行います。',
+    '大量の変換を行う場合は、少し時間がかかることがあります。',
+    'ブラウザを閉じても、サーバー側で処理は継続されます。',
+    '「キャンセル」を押すと、まだ開始していない処理は停止します。'
+  ];
+
+  function getPhaseInfo(progress) {
+    for (let i = PHASES.length - 1; i >= 0; i--) {
+      if (progress >= PHASES[i].threshold) {
+        return PHASES[i];
+      }
+    }
+    return PHASES[0];
+  }
+
+  function startTipsRotation() {
+    if (tipsTimer) clearInterval(tipsTimer);
+    
+    if (tipsTextEl) {
+      tipsTextEl.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
+    }
+
+    tipsTimer = setInterval(() => {
+      if (!tipsTextEl) return;
+      
+      tipsTextEl.style.opacity = '0';
+      tipsTextEl.style.transform = 'translateY(5px)';
+      
+      setTimeout(() => {
+        const randomTip = TIPS[Math.floor(Math.random() * TIPS.length)];
+        tipsTextEl.textContent = randomTip;
+        tipsTextEl.style.opacity = '1';
+        tipsTextEl.style.transform = 'translateY(0)';
+      }, 300);
+    }, 5000);
+  }
 
   function hasActiveConversions() {
     return Object.values(conversions).some((conversion) => ACTIVE_STATUSES.has(conversion.status));
@@ -54,8 +107,14 @@
 
       node.querySelector('.conversion-title').textContent = `変換 #${index + 1}`;
       node.querySelector('.conversion-prompt').textContent = '読み込み中...';
-      node.querySelector('.conversion-status-badge').textContent = '待機中';
-      node.querySelector('.conversion-counter').textContent = '0 / 0 枚';
+      
+      // ステータス初期化
+      const dot = node.querySelector('.conversion-status-dot');
+      const text = node.querySelector('.conversion-status-text');
+      dot.className = 'conversion-status-dot status-dot-pending';
+      text.textContent = '待機中';
+      
+      node.querySelector('.conversion-counter').textContent = '0 / 0';
 
       container.appendChild(node);
 
@@ -81,7 +140,7 @@
     const total = conversion.generation_count || 0;
     const current = conversion.current_count || 0;
 
-    let progress = 10;
+    let progress = 5;
     if (total > 0) {
       const ratio = Math.min(99, Math.round((current / total) * 100));
       progress = Math.max(progress, ratio);
@@ -93,41 +152,48 @@
     }
 
     const progressBar = card.querySelector('.conversion-progress-bar');
-    if (conversion.status === 'processing') {
-      progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
-    } else {
-      progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+    if (progressBar) {
+      // アニメーションクラスはCSSで制御（色など）
+      progressBar.style.width = `${progress}%`;
+      progressBar.setAttribute('aria-valuenow', progress);
     }
-    progressBar.style.width = `${progress}%`;
-    progressBar.setAttribute('aria-valuenow', progress);
-    progressBar.textContent = conversion.status === 'cancelled' ? 'キャンセル' : `${progress}%`;
 
-    const statusBadge = card.querySelector('.conversion-status-badge');
+    // ステータス表示更新
+    const dot = card.querySelector('.conversion-status-dot');
+    const statusText = card.querySelector('.conversion-status-text');
+    
+    // クラスリセット
+    if (dot) dot.className = 'conversion-status-dot';
+    
     const statusMap = {
-      pending: { text: '待機中', class: 'bg-secondary' },
-      processing: { text: '処理中', class: 'bg-primary' },
-      completed: { text: '完了', class: 'bg-success' },
-      failed: { text: '失敗', class: 'bg-danger' },
-      cancelled: { text: 'キャンセル済み', class: 'bg-secondary' },
+      pending: { text: '待機中', class: 'status-dot-pending' },
+      processing: { text: '処理中', class: 'status-dot-processing' },
+      completed: { text: '完了', class: 'status-dot-completed' },
+      failed: { text: '失敗', class: 'status-dot-failed' },
+      cancelled: { text: 'キャンセル', class: 'status-dot-pending' },
     };
-    const statusInfo = statusMap[conversion.status] || statusMap.pending;
-    statusBadge.textContent = statusInfo.text;
-    statusBadge.className = `badge ${statusInfo.class} conversion-status-badge`;
+
+    const info = statusMap[conversion.status] || statusMap.pending;
+    if (dot) dot.classList.add(info.class);
+    if (statusText) statusText.textContent = info.text;
 
     const counter = card.querySelector('.conversion-counter');
-    if (conversion.status === 'completed' && data.images) {
-      counter.textContent = `${data.images.length} / ${total} 枚`;
-    } else if (conversion.status === 'processing' && total > 0) {
-      counter.textContent = `${current} / ${total} 枚`;
-    } else if (conversion.status === 'cancelled') {
-      counter.textContent = 'キャンセル済み';
-    } else {
-      counter.textContent = conversion.status === 'processing' ? '処理中...' : '';
+    if (counter) {
+      if (conversion.status === 'completed' && data.images) {
+        counter.textContent = `${data.images.length} / ${total}`;
+      } else if (conversion.status === 'processing' && total > 0) {
+        counter.textContent = `${current} / ${total}`;
+      } else if (conversion.status === 'cancelled') {
+        counter.textContent = '- / -';
+      } else {
+        counter.textContent = conversion.status === 'processing' ? '...' : '0 / 0';
+      }
     }
 
     const promptEl = card.querySelector('.conversion-prompt');
-    if (conversion.prompt && promptEl.textContent === '読み込み中...') {
+    if (promptEl && conversion.prompt && promptEl.textContent === '読み込み中...') {
       promptEl.textContent = conversion.prompt;
+      promptEl.title = conversion.prompt; // ツールチップ
     }
 
     conversions[id] = {
@@ -149,16 +215,38 @@
     const cancelled = list.filter((c) => c.status === 'cancelled').length;
     const processing = list.filter((c) => c.status === 'processing').length;
     const finished = completed + failed + cancelled;
-    const overallPercent = total > 0 ? Math.round((finished / total) * 100) : 0;
+    
+    // 全体の進捗率計算
+    // 各変換の進捗率の平均をとる
+    const totalProgressSum = list.reduce((sum, c) => sum + c.progress, 0);
+    const overallPercent = total > 0 ? Math.round(totalProgressSum / total) : 0;
 
-    if (finished < total) {
-      overallBar.classList.add('progress-bar-striped', 'progress-bar-animated');
-    } else {
-      overallBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
-    }
     overallBar.style.width = `${overallPercent}%`;
     overallBar.setAttribute('aria-valuenow', overallPercent);
-    overallBar.textContent = `${overallPercent}%`;
+
+    // フェーズ更新
+    const phase = getPhaseInfo(overallPercent);
+    if (overallStatusPhaseEl) {
+      if (finished === total) {
+        if (completed === total) {
+          overallStatusPhaseEl.textContent = '変換完了';
+          overallStatusPhaseEl.style.color = 'var(--success-text)';
+        } else if (failed === total) {
+          overallStatusPhaseEl.textContent = '変換失敗';
+          overallStatusPhaseEl.style.color = 'var(--danger-text)';
+        } else if (cancelled === total) {
+          overallStatusPhaseEl.textContent = 'キャンセル済み';
+          overallStatusPhaseEl.style.color = 'var(--text-muted)';
+        } else {
+          // 混在（成功 + 失敗/キャンセル）
+          overallStatusPhaseEl.textContent = '処理完了（要確認）';
+          overallStatusPhaseEl.style.color = 'var(--accent-color)';
+        }
+      } else {
+        overallStatusPhaseEl.textContent = phase.text;
+        overallStatusPhaseEl.style.color = 'var(--text-primary)';
+      }
+    }
 
     let counterText = `${completed} / ${total} 件完了`;
     if (cancelled > 0) {
@@ -169,6 +257,7 @@
     }
     overallCounter.textContent = counterText;
 
+    // メッセージ更新
     if (finished === total) {
       if (completed === total) {
         overallMessage.textContent = '全ての変換が完了しました！ギャラリーへ移動します...';
@@ -182,7 +271,7 @@
         overallMessage.textContent = '一部の変換がキャンセルまたは失敗しました。';
       }
     } else if (processing > 0) {
-      overallMessage.textContent = `${processing}件の変換を処理中...`;
+      overallMessage.textContent = phase.sub; // フェーズのサブテキストを使用
     } else if (cancelled > 0) {
       overallMessage.textContent = `${cancelled}件の変換をキャンセルしました`;
     } else if (failed > 0) {
@@ -315,30 +404,6 @@
 
     // 進捗更新イベント
     wsManager.on('progress', ({ conversionId, progress, status, message, current, currentCount, total, totalCount }) => {
-      const card = container.querySelector(`[data-conversion-id="${conversionId}"]`);
-      if (card) {
-        const progressBar = card.querySelector('.conversion-progress-bar');
-        if (progressBar) {
-          progressBar.style.width = `${progress}%`;
-          progressBar.setAttribute('aria-valuenow', progress);
-          progressBar.textContent = `${progress}%`;
-
-          if (status === 'processing') {
-            progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
-          } else {
-            progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
-          }
-        }
-
-        const counter = card.querySelector('.conversion-counter');
-        if (counter && conversions[conversionId]) {
-          const conv = conversions[conversionId];
-          if (status === 'processing' && conv.total > 0) {
-            counter.textContent = `${conv.current} / ${conv.total} 枚`;
-          }
-        }
-      }
-
       // 変換データを更新
       if (conversions[conversionId]) {
         conversions[conversionId].status = status;
@@ -355,8 +420,20 @@
         } else if (totalCount !== undefined) {
           conversions[conversionId].total = totalCount;
         }
+        
+        // カード更新用のダミーデータ構造作成
+        const dummyData = {
+            conversion: {
+                id: conversionId,
+                status: status,
+                prompt: conversions[conversionId].prompt,
+                current_count: conversions[conversionId].current,
+                generation_count: conversions[conversionId].total
+            }
+        };
+        updateConversionCard(conversionId, dummyData);
       }
-
+      
       updateOverallProgress();
     });
 
@@ -473,6 +550,9 @@
         clearInterval(fallbackTimer);
         fallbackTimer = null;
       }
+      if (tipsTimer) {
+        clearInterval(tipsTimer);
+      }
 
       setCancelButtonState(true);
 
@@ -515,6 +595,9 @@
   document.addEventListener('DOMContentLoaded', async () => {
     initializeConversionCards();
     
+    // Tipsローテーション開始
+    startTipsRotation();
+    
     // 初期状態を取得
     await fetchInitialStatus();
 
@@ -533,6 +616,9 @@
       }
       if (fallbackTimer) {
         clearInterval(fallbackTimer);
+      }
+      if (tipsTimer) {
+        clearInterval(tipsTimer);
       }
     });
   });

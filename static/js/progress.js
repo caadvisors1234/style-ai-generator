@@ -16,35 +16,117 @@
     return;
   }
 
+  const statusPhaseEl = document.getElementById('status-phase');
   const messageEl = document.getElementById('progress-message');
   const counterEl = document.getElementById('progress-counter');
   const bar = document.getElementById('progress-bar');
   const cancelBtn = document.getElementById('cancel-conversion');
+  const tipsTextEl = document.getElementById('tips-text');
 
   let ws = null;
   let fallbackTimer = null;
+  let tipsTimer = null;
   let totalCount = 0;
   let currentCount = 0;
   let fallbackNotified = false;
 
+  // 定数定義
+  const PHASES = [
+    { threshold: 0, text: '準備中...', sub: 'システムを初期化しています' },
+    { threshold: 10, text: '画像解析中...', sub: 'アップロードされた画像を分析しています' },
+    { threshold: 30, text: 'AI生成開始', sub: '最適なパラメータを計算中' },
+    { threshold: 50, text: 'スタイル適用中...', sub: 'ディテールを描き込んでいます' },
+    { threshold: 80, text: '仕上げ中...', sub: '高画質化処理を行っています' },
+    { threshold: 100, text: '完了', sub: 'ギャラリーへ移動します' }
+  ];
+
+  const TIPS = [
+    'AIは画像構図を維持しながらスタイルを適用します。',
+    '「上位モデル」を使用すると、より高精細な結果が得られます。',
+    '気に入った結果はギャラリーからダウンロードできます。',
+    'プロンプトに具体的な指示を含めると、意図が伝わりやすくなります。',
+    '変換時間は画像の複雑さやモデルによって異なります。',
+    '複数の画像を一度にアップロードして一括変換も可能です。',
+    '生成された画像の明るさやコントラストは後から調整できます。'
+  ];
+
   /**
-   * 進捗バーを更新
+   * 進捗状況に応じたフェーズテキストを取得
+   */
+  function getPhaseInfo(progress) {
+    for (let i = PHASES.length - 1; i >= 0; i--) {
+      if (progress >= PHASES[i].threshold) {
+        return PHASES[i];
+      }
+    }
+    return PHASES[0];
+  }
+
+  /**
+   * Tipsをローテーション表示
+   */
+  function startTipsRotation() {
+    if (tipsTimer) clearInterval(tipsTimer);
+    
+    // 初回ランダム
+    if (tipsTextEl) {
+      tipsTextEl.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
+    }
+
+    tipsTimer = setInterval(() => {
+      if (!tipsTextEl) return;
+      
+      // フェードアウト
+      tipsTextEl.style.opacity = '0';
+      tipsTextEl.style.transform = 'translateY(5px)';
+      
+      setTimeout(() => {
+        // テキスト変更
+        const randomTip = TIPS[Math.floor(Math.random() * TIPS.length)];
+        tipsTextEl.textContent = randomTip;
+        
+        // フェードイン
+        tipsTextEl.style.opacity = '1';
+        tipsTextEl.style.transform = 'translateY(0)';
+      }, 300); // CSS transitionと合わせる
+    }, 5000);
+  }
+
+  /**
+   * 進捗バーとステータスを更新
    */
   function updateBar(progress, status, text) {
     if (bar) {
       bar.style.width = `${progress}%`;
-      bar.setAttribute('aria-valuenow', progress);
-      bar.textContent = `${progress}%`;
+      // bar.textContentは削除（デザイン変更のため）
+    }
 
-      // アニメーションの制御
-      if (status === 'processing') {
-        bar.classList.add('progress-bar-striped', 'progress-bar-animated');
+    // フェーズ情報の更新
+    const phase = getPhaseInfo(progress);
+    
+    if (statusPhaseEl) {
+      if (status === 'completed') {
+        statusPhaseEl.textContent = '変換完了';
+        statusPhaseEl.style.color = 'var(--success-text)';
+      } else if (status === 'failed') {
+        statusPhaseEl.textContent = '変換失敗';
+        statusPhaseEl.style.color = 'var(--danger-text)';
+      } else if (status === 'cancelled') {
+        statusPhaseEl.textContent = 'キャンセル済み';
+        statusPhaseEl.style.color = 'var(--text-muted)';
       } else {
-        bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+        statusPhaseEl.textContent = phase.text;
+        statusPhaseEl.style.color = 'var(--text-primary)';
       }
     }
+
     if (messageEl) {
-      messageEl.textContent = text || status;
+      if (text) {
+        messageEl.textContent = text;
+      } else {
+        // テキスト未指定時はフェーズのサブテキストを優先
+        messageEl.textContent = phase.sub || status;
+      }
     }
   }
 
@@ -89,7 +171,7 @@
       }
 
       // 進捗を初期表示
-      let progress = 10;
+      let progress = 5; // 初期値少し上げる
       if (totalCount > 0) {
         const ratio = Math.min(99, Math.round((currentCount / totalCount) * 100));
         progress = Math.max(progress, ratio);
@@ -101,7 +183,7 @@
     } catch (error) {
       const errorMessage = 'ステータスの取得に失敗しました';
       console.error('[Progress] Failed to fetch initial status:', error);
-      updateBar(10, 'error', errorMessage);
+      updateBar(5, 'error', errorMessage);
       // エラーでもWebSocket接続を試みる（フォールバックが動作する）
       return true;
     }
@@ -176,9 +258,7 @@
     // 接続イベント
     ws.on('connect', () => {
       console.log('[Progress] WebSocket connected');
-      if (messageEl) {
-        messageEl.textContent = 'リアルタイムで進捗を監視中...';
-      }
+      // メッセージはupdateBarで管理するためここでは更新しない
     });
 
     // 切断イベント
@@ -219,7 +299,7 @@
           fallbackNotified = true;
         }
 
-        let progress = 10;
+        let progress = 5;
         if (totalCount > 0) {
           const ratio = Math.min(99, Math.round((currentCount / totalCount) * 100));
           progress = Math.max(progress, ratio);
@@ -228,7 +308,7 @@
           progress = 100;
         }
 
-        updateBar(progress, conversion.status, `ステータス: ${conversion.status}`);
+        updateBar(progress, conversion.status, null); // メッセージは自動フェーズ判定
         updateCounter(conversion.status, data.images);
 
         if (conversion.status === 'completed') {
@@ -239,7 +319,7 @@
           handleCancelled();
         }
       } catch (error) {
-        // ポーリングエラーは静かに処理（連続エラーの場合は別途対応）
+        // ポーリングエラーは静かに処理
         console.error('[Progress] Polling error:', error);
       }
     }, 4000);
@@ -256,6 +336,9 @@
     if (fallbackTimer) {
       clearInterval(fallbackTimer);
       fallbackTimer = null;
+    }
+    if (tipsTimer) {
+      clearInterval(tipsTimer);
     }
 
     notifySuccess('画像変換が完了しました');
@@ -283,6 +366,9 @@
       clearInterval(fallbackTimer);
       fallbackTimer = null;
     }
+    if (tipsTimer) {
+      clearInterval(tipsTimer);
+    }
 
     notifyError(errorMessage);
     updateBar(100, 'failed', '変換に失敗しました');
@@ -303,6 +389,9 @@
     if (fallbackTimer) {
       clearInterval(fallbackTimer);
       fallbackTimer = null;
+    }
+    if (tipsTimer) {
+      clearInterval(tipsTimer);
     }
 
     notifyWarning('変換をキャンセルしました');
@@ -338,6 +427,9 @@
         clearInterval(fallbackTimer);
         fallbackTimer = null;
       }
+      if (tipsTimer) {
+        clearInterval(tipsTimer);
+      }
 
       setTimeout(() => {
         window.location.href = '/';
@@ -356,6 +448,9 @@
    * 初期化
    */
   document.addEventListener('DOMContentLoaded', async () => {
+    // Tipsローテーション開始
+    startTipsRotation();
+
     // 初期状態を取得
     const shouldConnect = await fetchInitialStatus();
 
@@ -376,6 +471,9 @@
       }
       if (fallbackTimer) {
         clearInterval(fallbackTimer);
+      }
+      if (tipsTimer) {
+        clearInterval(tipsTimer);
       }
     });
   });

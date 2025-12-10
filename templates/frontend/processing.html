@@ -4,14 +4,33 @@
 {% block title %}変換進行中 - Style AI Generator{% endblock %}
 
 {% block content %}
-<section class="text-center" data-conversion-id="{{ conversion_id|default:'' }}" id="conversion-progress" style="max-width: 600px; margin: 4rem auto;">
-    <h2 style="margin-bottom: 1.5rem;">画像変換を実行中...</h2>
-    <p class="text-muted" id="progress-message" style="margin-bottom: 2rem;">初期化しています</p>
-    <div class="progress" style="height: 0.75rem; margin-bottom: 1.5rem;">
-        <div class="progress-bar progress-bar-striped progress-bar-animated" id="progress-bar" role="progressbar" style="width: 10%;" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100"></div>
+<section class="loading-card" data-conversion-id="{{ conversion_id|default:'' }}" id="conversion-progress">
+    <!-- AI Spinner -->
+    <div class="ai-spinner">
+        <div class="ai-spinner-core"></div>
     </div>
+
+    <!-- Status Text -->
+    <div class="status-text" id="status-phase">準備中...</div>
+    <div class="sub-status-text" id="progress-message">初期化しています</div>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar-custom-container">
+        <div class="progress-bar-custom" id="progress-bar" style="width: 5%;"></div>
+    </div>
+
+    <!-- Tips Section -->
+    <div class="tips-container">
+        <div class="tips-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            DID YOU KNOW?
+        </div>
+        <div class="tips-text" id="tips-text">AIが最適なスタイルを分析しています...</div>
+    </div>
+
+    <!-- Counter & Actions -->
     <div style="margin-bottom: 2rem; font-size: var(--font-size-base); font-weight: 500;" id="progress-counter">0 / 0 枚</div>
-    <button class="btn btn-outline-danger" id="cancel-conversion" type="button">変換をキャンセル</button>
+    <button class="btn btn-outline-danger btn-sm" id="cancel-conversion" type="button">変換をキャンセル</button>
 </section>
 {% endblock %}
 

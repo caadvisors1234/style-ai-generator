@@ -4,49 +4,69 @@
 {% block title %}複数画像変換進行中 - Style AI Generator{% endblock %}
 
 {% block content %}
-<section class="text-center" id="multiple-conversion-progress" style="max-width: 1200px; margin: 4rem auto;">
+<!-- Overall Progress -->
+<section class="loading-card" id="multiple-conversion-progress" style="max-width: 800px; margin-bottom: 3rem;">
     <h2 style="margin-bottom: 1.5rem;">画像変換を実行中...</h2>
-    <p class="text-muted" id="overall-message" style="margin-bottom: 3rem;">全ての変換が完了するまでお待ちください</p>
+    
+    <!-- AI Spinner -->
+    <div class="ai-spinner" style="width: 60px; height: 60px;">
+        <div class="ai-spinner-core" style="width: 30px; height: 30px;"></div>
+    </div>
 
-    <!-- 全体の進捗 -->
-    <div class="card" style="margin-bottom: 3rem;">
-        <div class="card-body" style="padding: 2rem;">
-            <h3 style="margin-bottom: 1.5rem; font-size: var(--font-size-medium);">全体の進捗</h3>
-            <div class="progress" style="height: 0.75rem; margin-bottom: 1.5rem;">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" id="overall-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-            <div id="overall-counter" style="font-size: var(--font-size-medium); font-weight: 500; margin-bottom: 0;">0 / 0 件完了</div>
+    <!-- Overall Status -->
+    <div class="status-text" id="overall-status-phase">準備中...</div>
+    <div class="sub-status-text" id="overall-message">全ての変換が完了するまでお待ちください</div>
+
+    <!-- Overall Progress Bar -->
+    <div class="progress-bar-custom-container">
+        <div class="progress-bar-custom" id="overall-progress-bar" style="width: 0%;"></div>
+    </div>
+    
+    <div id="overall-counter" style="margin-bottom: 2rem; font-weight: 500;">0 / 0 件完了</div>
+
+    <!-- Tips Section -->
+    <div class="tips-container">
+        <div class="tips-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            TIPS
         </div>
+        <div class="tips-text" id="tips-text">複数の画像を並行して処理しています...</div>
     </div>
+    
+    <button class="btn btn-outline-danger btn-sm" id="cancel-all-conversions" type="button">
+        すべての変換をキャンセル
+    </button>
+</section>
 
-    <!-- 各変換の進捗 -->
+<!-- Individual Items -->
+<div class="container" style="max-width: 1000px;">
+    <h3 class="h4 mb-4 text-center">各画像の進捗</h3>
     <div class="row g-3" id="conversion-items"></div>
+</div>
 
-    <div class="text-center" style="margin-top: 2rem;">
-        <button class="btn btn-outline-danger" id="cancel-all-conversions" type="button">
-            すべての変換をキャンセル
-        </button>
-    </div>
-
-    <!-- テンプレート -->
-    <template id="conversion-item-template">
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 conversion-card">
-                <div class="card-body">
-                    <h4 class="card-title conversion-title" style="font-size: var(--font-size-base); margin-bottom: 0.75rem;">変換 #1</h4>
-                    <p class="card-text small text-muted conversion-prompt" style="margin-bottom: 1rem;">プロンプト...</p>
-                    <div class="progress" style="height: 0.5rem; margin-bottom: 1rem;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated conversion-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+<!-- Template -->
+<template id="conversion-item-template">
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 conversion-card border-0 shadow-sm">
+            <div class="card-body">
+                <h4 class="card-title conversion-title" style="font-size: 1rem; margin-bottom: 0.75rem;">変換 #1</h4>
+                <p class="card-text small text-muted conversion-prompt" style="margin-bottom: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">プロンプト...</p>
+                
+                <div class="progress" style="height: 4px; margin-bottom: 1rem; background-color: var(--bg-tertiary);">
+                    <div class="progress-bar conversion-progress-bar" role="progressbar" style="width: 0%; background-color: var(--accent-color);"></div>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center small">
+                    <div class="conversion-status d-flex align-items-center">
+                        <span class="conversion-status-dot status-dot-pending"></span>
+                        <span class="conversion-status-text text-muted">待機中</span>
                     </div>
-                    <div class="conversion-status small" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span class="badge bg-secondary conversion-status-badge">待機中</span>
-                        <span class="conversion-counter">0 / 0 枚</span>
-                    </div>
+                    <span class="conversion-counter text-muted">0 / 0</span>
                 </div>
             </div>
         </div>
-    </template>
-</section>
+    </div>
+</template>
 {% endblock %}
 
 {% block extra_js %}
