@@ -595,15 +595,40 @@ textarea.form-control {
    Usage Summary - 利用状況表示
    ================================================ */
 #usage-summary {
-    min-width: 260px;
+    min-width: 180px;
+    max-width: 220px;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.2rem;
 }
 
-.usage-progress {
-    height: 6px;
+.usage-summary.compact .usage-progress {
+    height: 4px;
     background-color: var(--bg-tertiary);
+}
+
+.usage-summary .usage-badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.5rem;
+}
+
+.usage-summary .usage-remaining {
+    line-height: 1.1;
+}
+
+@media (max-width: 991.98px) {
+    .usage-summary {
+        max-width: 180px;
+    }
+    .usage-summary .usage-remaining {
+        display: none;
+    }
+}
+
+/* ナビゲーションの折り返し防止 */
+.navbar .navbar-nav {
+    white-space: nowrap;
 }
 
 /* ================================================
