@@ -15,6 +15,16 @@
     uploads: [],
   };
 
+  function emitUploadsChanged() {
+    try {
+      window.dispatchEvent(new CustomEvent('uploadsChanged', {
+        detail: { count: state.uploads.length },
+      }));
+    } catch (e) {
+      // no-op
+    }
+  }
+
   function updateStartButton() {
     if (startButton) {
       startButton.disabled = state.uploads.length === 0;
@@ -52,6 +62,7 @@
     });
 
     updateStartButton();
+    emitUploadsChanged();
   }
 
   async function uploadFiles(files) {

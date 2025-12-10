@@ -8,7 +8,7 @@
     }
 
     const wrapper = document.createElement('div');
-    wrapper.className = `toast align-items-center text-bg-${variant} border-0`;
+    wrapper.className = `toast align-items-center toast-accent toast-accent-${variant} border-0 shadow-sm`;
     wrapper.role = 'alert';
     wrapper.ariaLive = 'assertive';
     wrapper.ariaAtomic = 'true';
@@ -19,7 +19,7 @@
           ${title ? `<strong class="d-block mb-1">${title}</strong>` : ''}
           ${message}
         </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     `;
 

@@ -1,8 +1,36 @@
 (() => {
   const startButton = document.getElementById('start-conversion');
   const generationSelect = document.getElementById('generation-count');
-  const modelSelect = document.getElementById('model-variant');
+  const modelRadios = document.querySelectorAll('input[name="model_variant"]');
   const aspectSelect = document.getElementById('aspect-ratio');
+  const estimatedEl = document.getElementById('estimated-credit');
+
+  const MODEL_MULTIPLIERS = {
+    'gemini-2.5-flash-image': 1,
+    'gemini-3-pro-image-preview': 5,
+  };
+
+  function getSelectedModel() {
+    const checked = document.querySelector('input[name="model_variant"]:checked');
+    return checked ? checked.value : null;
+  }
+
+  function getUploadCount() {
+    if (window.UploadManager && typeof window.UploadManager.getFiles === 'function') {
+      return window.UploadManager.getFiles().length || 0;
+    }
+    return 0;
+  }
+
+  function updateEstimatedCredit() {
+    if (!estimatedEl) return;
+    const files = getUploadCount();
+    const generation = Number(generationSelect?.value || 1);
+    const model = getSelectedModel() || 'gemini-2.5-flash-image';
+    const multiplier = MODEL_MULTIPLIERS[model] || 1;
+    const total = files * generation * multiplier;
+    estimatedEl.textContent = `この条件で合計 ${total} クレジット`;
+  }
 
   async function ensureFileData(file, index) {
     if (file.originalFile) {
@@ -72,8 +100,9 @@
           formData.append('preset_name', promptMeta.presetName);
         }
         formData.append('generation_count', generationSelect.value);
-        if (modelSelect) {
-          formData.append('model_variant', modelSelect.value);
+        const selectedModel = getSelectedModel();
+        if (selectedModel) {
+          formData.append('model_variant', selectedModel);
         }
         if (aspectSelect) {
           formData.append('aspect_ratio', aspectSelect.value);
@@ -118,5 +147,16 @@
     if (startButton) {
       startButton.addEventListener('click', startConversion);
     }
+    if (generationSelect) {
+      generationSelect.addEventListener('change', updateEstimatedCredit);
+    }
+    if (modelRadios && modelRadios.length) {
+      modelRadios.forEach((radio) => {
+        radio.addEventListener('change', updateEstimatedCredit);
+      });
+    }
+    window.addEventListener('uploadsChanged', updateEstimatedCredit);
+    window.addEventListener('imageDeleted', updateEstimatedCredit);
+    updateEstimatedCredit();
   });
 })();

@@ -126,15 +126,29 @@
                 <option value="4">4枚</option>
                 <option value="5">5枚</option>
             </select>
-            <div class="form-text">消費クレジット = 画像数 × モデル倍率（標準1、上位5）</div>
         </div>
         <div class="col-md-4">
-            <label for="model-variant" class="form-label">モデル選択（クレジット）</label>
-            <select id="model-variant" class="form-select">
-                <option value="gemini-2.5-flash-image" selected>標準: Gemini 2.5 Flash Image（1クレジット/画像）</option>
-                <option value="gemini-3-pro-image-preview">上位: Gemini 3 Pro Image Preview（5クレジット/画像・1K固定）</option>
-            </select>
-            <div class="form-text">上位モデルは出力サイズを1Kに固定します</div>
+            <span class="form-label d-block mb-2">モデル選択（クレジット）</span>
+            <div class="row g-2" id="model-variant-group">
+                <div class="col-12">
+                    <label class="model-option w-100">
+                        <input type="radio" name="model_variant" value="gemini-2.5-flash-image" class="form-check-input" checked>
+                        <div class="model-option-body">
+                            <div class="fw-semibold">Gemini 2.5 Flash Image</div>
+                            <div class="text-muted small">速い・低コスト / 日常利用向け（1クレジット/画像）</div>
+                        </div>
+                    </label>
+                </div>
+                <div class="col-12">
+                    <label class="model-option w-100">
+                        <input type="radio" name="model_variant" value="gemini-3-pro-image-preview" class="form-check-input">
+                        <div class="model-option-body">
+                            <div class="fw-semibold">Gemini 3 Pro Image Preview</div>
+                            <div class="text-muted small">高品質・高コスト / 厳選出力向け（5クレジット/画像）</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
         </div>
         <div class="col-md-4">
             <label for="aspect-ratio" class="form-label">画像比率</label>
@@ -153,7 +167,8 @@
             </select>
         </div>
     </div>
-    <div>
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+        <div class="text-muted small" id="estimated-credit">この条件で合計 0 クレジット</div>
         <button class="btn btn-primary btn-lg" id="start-conversion" type="button" disabled style="padding: 0.75rem 2rem;">
             変換を開始
         </button>

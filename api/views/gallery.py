@@ -8,6 +8,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from django.conf import settings
 from django.db import transaction
+from django.db import models
 from django.db.models import Q, Prefetch
 from django.utils import timezone
 from pathlib import Path
@@ -62,11 +63,25 @@ def gallery_list(request):
         sort = request.GET.get('sort', 'created_at_desc')
 
         # ユーザーの変換一覧を取得（削除済み・キャンセル済み除外）
-        conversions = ImageConversion.objects.filter(
+        base_qs = ImageConversion.objects.filter(
             user=request.user,
             is_deleted=False
         ).exclude(
             status='cancelled'
+        )
+
+        # 完了/失敗で生成画像が存在しないものを除外するために事前フィルタ
+        # （ページネーション前に件数を正しく計算するため）
+        conversions = base_qs.annotate(
+            has_active_images=models.Exists(
+                GeneratedImage.objects.filter(
+                    conversion=models.OuterRef('pk'),
+                    is_deleted=False,
+                )
+            )
+        ).filter(
+            models.Q(status__in=['completed', 'failed'], has_active_images=True)
+            | ~models.Q(status__in=['completed', 'failed'])
         ).select_related('user').prefetch_related(
             Prefetch(
                 'generated_images',
@@ -90,7 +105,7 @@ def gallery_list(request):
         paginator = Paginator(conversions, per_page)
         page_obj = paginator.get_page(page)
 
-        # レスポンス生成
+        # レスポンス生成（ページ内でのスキップが起きた場合に備え、スキップせず構築）
         conversion_list = []
         for conversion in page_obj:
             generated_images = []
@@ -103,10 +118,6 @@ def gallery_list(request):
                     'expires_at': gen_img.expires_at.isoformat() if gen_img.expires_at else None,
                     'created_at': gen_img.created_at.isoformat()
                 })
-
-            # 完了/失敗済みで生成画像が存在しない場合はスキップ（削除済みなど）
-            if conversion.status in ['completed', 'failed'] and not generated_images:
-                continue
 
             conversion_list.append({
                 'id': conversion.id,

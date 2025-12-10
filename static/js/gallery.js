@@ -32,6 +32,8 @@
       if (generatedImages.length === 0) {
         // 生成画像がない場合（処理中など）は元画像を表示
         const node = template.content.cloneNode(true);
+        const card = node.querySelector('.gallery-card');
+        card.dataset.conversionId = conversion.id;
         node.querySelector('.gallery-thumb').src = conversion.original_image_url;
 
         // 処理中の場合は状態を表示
@@ -62,6 +64,9 @@
         // 生成画像ごとにカードを作成
         generatedImages.forEach((image, index) => {
           const node = template.content.cloneNode(true);
+          const card = node.querySelector('.gallery-card');
+          card.dataset.conversionId = conversion.id;
+          card.dataset.imageId = image.id;
           node.querySelector('.gallery-thumb').src = image.image_url;
           const promptText = displayTitle;
           const suffix = generatedImages.length > 1 ? ` (${index + 1}/${generatedImages.length})` : '';
@@ -175,6 +180,27 @@
       if (window.ImageDetail) {
         window.ImageDetail.open(conversionId, imageId);
       }
+    });
+
+    window.addEventListener('imageDeleted', (event) => {
+      const { imageId, conversionId } = event.detail || {};
+      if (!imageId && !conversionId) return;
+      const cards = grid.querySelectorAll('.gallery-card');
+      cards.forEach((card) => {
+        const cardImageId = card.dataset.imageId;
+        const cardConversionId = card.dataset.conversionId;
+        if ((imageId && cardImageId && String(cardImageId) === String(imageId)) ||
+            (!imageId && conversionId && String(cardConversionId) === String(conversionId))) {
+          card.classList.add('fade-out');
+          setTimeout(() => {
+            card.parentElement?.remove();
+            const remaining = grid.querySelectorAll('.gallery-card').length;
+            if (remaining === 0) {
+              empty.classList.remove('d-none');
+            }
+          }, 250);
+        }
+      });
     });
   });
 })();

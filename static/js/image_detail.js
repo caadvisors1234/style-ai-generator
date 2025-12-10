@@ -79,9 +79,14 @@
       await APIClient.delete(`/api/v1/gallery/images/${state.imageId}/delete/`, {});
       notifyWarning('画像を削除しました');
       modal.hide();
-      if (typeof window.location.reload === 'function') {
-        setTimeout(() => window.location.reload(), 800);
-      }
+      // ギャラリーに即時反映
+      const deleteEvent = new CustomEvent('imageDeleted', {
+        detail: {
+          imageId: state.imageId,
+          conversionId: state.conversionId,
+        },
+      });
+      window.dispatchEvent(deleteEvent);
     } catch (error) {
       notifyError('画像の削除に失敗しました');
     }

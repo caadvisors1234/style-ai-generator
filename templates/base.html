@@ -29,9 +29,13 @@
                         <a class="nav-link" href="{% url 'frontend:gallery' %}">ギャラリー</a>
                     </li>
                 </ul>
-                <div class="d-flex align-items-center gap-3">
-                    <div class="text-secondary small" id="usage-summary">
-                        利用状況を取得しています...
+                <div class="d-flex align-items-center gap-3 flex-wrap justify-content-end w-100 w-lg-auto">
+                    <div class="usage-summary" id="usage-summary">
+                        <span class="badge rounded-pill bg-light text-secondary" id="usage-badge">- / - クレジット</span>
+                        <div class="progress usage-progress">
+                            <div class="progress-bar" role="progressbar" id="usage-progress-bar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="usage-remaining text-muted small" id="usage-remaining-label">残り - クレジット</div>
                     </div>
                     <button class="btn btn-outline-secondary btn-sm" id="logout-button" type="button">
                         ログアウト

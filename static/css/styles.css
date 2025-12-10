@@ -310,6 +310,37 @@ a:hover {
     font-size: var(--font-size-caption);
 }
 
+/* モデル選択ラジオ（カード風） */
+.model-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background-color: var(--bg-primary);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.model-option input[type="radio"] {
+    margin: 0;
+    accent-color: var(--primary-color, #0d6efd);
+}
+
+.model-option-body {
+    flex: 1;
+}
+
+.model-option:hover {
+    border-color: var(--primary-color, #0d6efd);
+    box-shadow: var(--shadow-sm);
+}
+
+.model-option input[type="radio"]:checked + .model-option-body .fw-semibold {
+    color: var(--primary-color, #0d6efd);
+}
+
 /* ================================================
    Button Styles - ボタンスタイル（フラット）
    ================================================ */
@@ -492,6 +523,31 @@ textarea.form-control {
     font-size: var(--font-size-base);
 }
 
+/* トーストの固定幅カラーライン */
+.toast-accent {
+    position: relative;
+    border-left: 4px solid transparent;
+    padding-left: 0.75rem;
+    background-color: var(--bg-primary);
+}
+
+.toast-accent-success {
+    border-left-color: var(--bs-success);
+}
+
+.toast-accent-danger {
+    border-left-color: var(--bs-danger);
+}
+
+.toast-accent-warning {
+    border-left-color: var(--bs-warning);
+}
+
+.fade-out {
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
 /* ================================================
    Progress Bar - 進捗バー
    ================================================ */
@@ -539,9 +595,15 @@ textarea.form-control {
    Usage Summary - 利用状況表示
    ================================================ */
 #usage-summary {
-    min-width: 200px;
-    font-size: 0.875rem;
-    font-weight: 500;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.usage-progress {
+    height: 6px;
+    background-color: var(--bg-tertiary);
 }
 
 /* ================================================
