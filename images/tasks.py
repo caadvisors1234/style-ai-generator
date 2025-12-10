@@ -154,16 +154,33 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
 
         _ensure_not_cancelled(conversion)
 
-        # モデルがフォールバックした場合、実際に使ったモデル名と消費クレジットを補正
-        if model_used and model_used != conversion.model_name:
-            actual_multiplier = MODEL_MULTIPLIERS.get(model_used, 1)
-            actual_cost = conversion.generation_count * actual_multiplier
+        # 実際に使用されたモデルごとの内訳を集計（部分的フォールバック対応）
+        used_models = [
+            result.get('model_used') or model_used or requested_model
+            for result in generated_results
+        ]
+        model_usage_counts: Dict[str, int] = {}
+        for m in used_models:
+            model_usage_counts[m] = model_usage_counts.get(m, 0) + 1
+
+        actual_cost = sum(MODEL_MULTIPLIERS.get(m, 1) for m in used_models)
+        fallback_present = any(m != requested_model for m in used_models)
+
+        if fallback_present:
+            actual_models = set(used_models)
+            effective_model = used_models[0] if len(actual_models) == 1 else requested_model
+            used_model_label = effective_model if len(actual_models) == 1 else 'mixed'
             refund = max(0, conversion.usage_consumed - actual_cost)
 
-            conversion.model_name = model_used
+            # usage_consumed と必要なら model_name を補正
+            update_fields = ['usage_consumed', 'updated_at']
             conversion.usage_consumed = actual_cost
-            conversion.save(update_fields=['model_name', 'usage_consumed', 'updated_at'])
+            if len(actual_models) == 1 and effective_model != conversion.model_name:
+                conversion.model_name = effective_model
+                update_fields.append('model_name')
+            conversion.save(update_fields=update_fields)
 
+            # クレジット返却
             if refund > 0:
                 try:
                     profile = conversion.user.profile
@@ -179,43 +196,42 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
                         if hasattr(profile, "invalidate_usage_cache"):
                             profile.invalidate_usage_cache()
                     logger.info(
-                        "Adjusted usage after fallback: refund=%s, actual_cost=%s, model=%s",
+                        "Adjusted usage after partial fallback: refund=%s, actual_cost=%s, models=%s",
                         refund,
                         actual_cost,
-                        model_used,
+                        model_usage_counts,
                     )
                 except Exception as refund_error:
                     logger.error(
-                        "Failed to adjust usage after fallback: %s",
+                        "Failed to adjust usage after partial fallback: %s",
                         refund_error,
                     )
+
+            fallback_payload = {
+                'fallback': True,
+                'requested_model': requested_model,
+                'used_model': used_model_label,
+                'refund': refund,
+                'usage_consumed': actual_cost,
+                'model_breakdown': model_usage_counts,
+            }
 
             # WebSocket通知
             async_to_sync(channel_layer.group_send)(
                 conversion_group,
                 {
                     'type': 'conversion_progress',
-                    'message': f"{requested_model} が利用できなかったため {model_used} にフォールバックしました。消費クレジットを再計算しています。",
+                    'message': f"{requested_model} が利用できなかったため別モデルで生成しました。消費クレジットを再計算しています。",
                     'progress': 35,
                     'status': 'processing',
-                    'fallback': True,
-                    'requested_model': requested_model,
-                    'used_model': model_used,
-                    'refund': refund,
-                    'usage_consumed': actual_cost,
+                    **fallback_payload,
                 }
             )
 
             # ポーリング用にキャッシュへ記録（1時間保持）
             cache.set(
                 f"conversion_fallback_{conversion.id}",
-                {
-                    'fallback': True,
-                    'requested_model': requested_model,
-                    'used_model': model_used,
-                    'refund': refund,
-                    'usage_consumed': actual_cost,
-                },
+                fallback_payload,
                 timeout=3600,
             )
 

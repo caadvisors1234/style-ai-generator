@@ -311,7 +311,8 @@ class GeminiImageAPIService:
                             'description': description,
                             'generation_number': i + 1,
                             'prompt_used': full_prompt,
-                            'aspect_ratio': aspect_ratio
+                            'aspect_ratio': aspect_ratio,
+                            'model_used': used_model_this_round,
                         })
                         logger.info(f"Successfully generated image {i + 1}/{generation_count}")
                     else:

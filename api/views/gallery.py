@@ -7,6 +7,7 @@ from django.http import JsonResponse, FileResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q, Prefetch
 from django.utils import timezone
 from pathlib import Path
@@ -102,6 +103,10 @@ def gallery_list(request):
                     'expires_at': gen_img.expires_at.isoformat() if gen_img.expires_at else None,
                     'created_at': gen_img.created_at.isoformat()
                 })
+
+            # 完了/失敗済みで生成画像が存在しない場合はスキップ（削除済みなど）
+            if conversion.status in ['completed', 'failed'] and not generated_images:
+                continue
 
             conversion_list.append({
                 'id': conversion.id,
@@ -359,18 +364,50 @@ def image_delete(request, image_id):
         }
     """
     try:
-        # 画像取得（権限チェック、キャンセル済み変換の画像は除外）
-        image = GeneratedImage.objects.select_related('conversion').get(
-            id=image_id,
-            conversion__user=request.user,
-            conversion__is_deleted=False,
-            conversion__status__in=['pending', 'processing', 'completed', 'failed'],  # cancelledを除外
-            is_deleted=False
-        )
+        with transaction.atomic():
+            # 画像取得（権限チェック、キャンセル済み変換の画像は除外）
+            image = (
+                GeneratedImage.objects.select_related('conversion')
+                .select_for_update()
+                .get(
+                    id=image_id,
+                    conversion__user=request.user,
+                    conversion__is_deleted=False,
+                    conversion__status__in=['pending', 'processing', 'completed', 'failed'],  # cancelledを除外
+                    is_deleted=False
+                )
+            )
 
-        # 論理削除
-        image.is_deleted = True
-        image.save()
+            conversion = image.conversion
+
+            # 論理削除
+            image.is_deleted = True
+            image.save(update_fields=['is_deleted', 'updated_at'])
+
+            # ファイル削除（元画像/調整後画像を安全に削除）
+            def _remove_if_exists(file_path: str) -> None:
+                if not file_path:
+                    return
+                abs_path = os.path.join(settings.MEDIA_ROOT, file_path)
+                if os.path.exists(abs_path):
+                    try:
+                        os.remove(abs_path)
+                    except OSError:
+                        # ここでの失敗は致命的でないため握りつぶす
+                        pass
+
+            base_image_path = BrightnessAdjustmentService.resolve_base_image_path(image.image_path)
+            # 現在の保存パス（明示）
+            _remove_if_exists(image.image_path)
+            # 調整前の元画像パスが異なる場合も削除
+            if base_image_path and base_image_path != image.image_path:
+                _remove_if_exists(base_image_path)
+
+            # 残存画像が無ければ変換自体も論理削除してギャラリーから除外
+            has_other_images = conversion.generated_images.filter(is_deleted=False).exists()
+            if not has_other_images and conversion.status in ['completed', 'failed']:
+                conversion.is_deleted = True
+                conversion.save(update_fields=['is_deleted', 'updated_at'])
 
         return JsonResponse({
             'status': 'success',
