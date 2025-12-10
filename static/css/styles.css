@@ -631,6 +631,14 @@ textarea.form-control {
     white-space: nowrap;
 }
 
+/* 5列レイアウト（LG以上） */
+@media (min-width: 992px) {
+    .col-lg-5th {
+        flex: 0 0 20%;
+        max-width: 20%;
+    }
+}
+
 /* ================================================
    Utility Classes - ユーティリティクラス
    ================================================ */

@@ -2,7 +2,6 @@
   const containerId = 'prompt-preset-container';
   const customPromptId = 'custom-prompt';
   const categoryTabsId = 'prompt-category-tabs';
-  const searchInputId = 'prompt-search-input';
   const noResultsId = 'prompt-no-results';
   const multiSelectToggleId = 'toggle-multi-select';
   const multiSelectIndicatorId = 'multi-select-indicator';
@@ -15,7 +14,6 @@
   let favoritePrompts = [];
   let recentPrompts = [];
   let currentCategory = 'all';
-  let searchQuery = '';
   let tooltipInstances = [];
   let isMultiSelectMode = false;
   let selectedPresets = new Set();
@@ -329,16 +327,6 @@
   }
 
   /**
-   * 検索入力ハンドラ
-   */
-  function handleSearchInput(event) {
-    searchQuery = event.target.value.trim().toLowerCase();
-    // 検索時は全件表示
-    isShowingAllPrompts = searchQuery.length > 0;
-    filterAndRenderPrompts();
-  }
-
-  /**
    * 「もっと見る」ボタンを生成
    */
   function renderShowMoreButton() {
@@ -394,19 +382,6 @@
         filteredPrompts = filteredPrompts.filter((p) => p.category === currentCategory);
       }
     }
-
-    // 検索フィルタ
-    if (searchQuery) {
-      filteredPrompts = filteredPrompts.filter((p) => {
-        const nameMatch = p.name.toLowerCase().includes(searchQuery);
-        const descMatch = (p.description || '').toLowerCase().includes(searchQuery);
-        return nameMatch || descMatch;
-      });
-      // 検索時は常に全件表示
-      isShowingAllPrompts = true;
-    }
-    // 検索クエリが空の場合は、isShowingAllPromptsの状態を維持
-    // （カテゴリ変更時は既にリセットされている）
 
     // 表示件数の制限（5件を超える場合、かつ全件表示フラグがfalseの場合）
     const MAX_INITIAL_DISPLAY = 5;
@@ -491,11 +466,6 @@
     const tabsContainer = document.getElementById(categoryTabsId);
     if (tabsContainer) {
       tabsContainer.addEventListener('click', handleCategoryTabClick);
-    }
-
-    const searchInput = document.getElementById(searchInputId);
-    if (searchInput) {
-      searchInput.addEventListener('input', handleSearchInput);
     }
 
     const multiSelectToggle = document.getElementById(multiSelectToggleId);
