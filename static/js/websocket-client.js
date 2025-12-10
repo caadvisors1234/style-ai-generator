@@ -138,6 +138,11 @@
             currentCount: data.currentCount,
             total: data.total,
             totalCount: data.totalCount,
+            fallback: data.fallback,
+            requested_model: data.requested_model,
+            used_model: data.used_model,
+            refund: data.refund,
+            usage_consumed: data.usage_consumed,
           });
           break;
 

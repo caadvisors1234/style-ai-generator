@@ -1,6 +1,7 @@
 (() => {
   const startButton = document.getElementById('start-conversion');
   const generationSelect = document.getElementById('generation-count');
+  const modelSelect = document.getElementById('model-variant');
   const aspectSelect = document.getElementById('aspect-ratio');
 
   async function ensureFileData(file, index) {
@@ -71,6 +72,9 @@
           formData.append('preset_name', promptMeta.presetName);
         }
         formData.append('generation_count', generationSelect.value);
+        if (modelSelect) {
+          formData.append('model_variant', modelSelect.value);
+        }
         if (aspectSelect) {
           formData.append('aspect_ratio', aspectSelect.value);
         }

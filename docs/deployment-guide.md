@@ -131,7 +131,7 @@ REDIS_URL=redis://localhost:6379/0
 # Google Cloud (Vertex AI)
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 GOOGLE_CLOUD_PROJECT=your-gcp-project-id
-GOOGLE_CLOUD_LOCATION=us-central1
+GOOGLE_CLOUD_LOCATION=global
 
 # ログ設定
 GUNICORN_ACCESS_LOG=/var/log/style-ai-generator/gunicorn_access.log

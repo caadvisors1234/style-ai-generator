@@ -269,15 +269,16 @@ a:hover {
    ================================================ */
 .uploaded-thumb,
 .gallery-thumb {
-    object-fit: cover;
+    object-fit: contain;
     height: 220px;
     border-radius: 0.375rem;
     transition: var(--transition-base);
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
 }
 
 .gallery-thumb {
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 
 .gallery-card {

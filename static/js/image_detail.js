@@ -6,6 +6,7 @@
   const originalImg = document.getElementById('detail-original');
   const generatedImg = document.getElementById('detail-generated');
   const createdAtEl = document.getElementById('detail-created-at');
+  const modelEl = document.getElementById('detail-model');
   const promptEl = document.getElementById('detail-prompt');
   const brightnessRange = document.getElementById('brightness-range');
   const brightnessValue = document.getElementById('brightness-value');
@@ -41,6 +42,7 @@
     originalImg.src = bustCache(image.conversion.original_image_url);
     generatedImg.src = bustCache(image.image_url);
     createdAtEl.textContent = new Date(image.created_at).toLocaleString('ja-JP');
+    modelEl.textContent = image.conversion.model_name || '—';
     promptEl.textContent = image.conversion.prompt || '（設定なし）';
     state.savedBrightness = image.brightness_adjustment ?? 0;
     brightnessRange.value = state.savedBrightness;

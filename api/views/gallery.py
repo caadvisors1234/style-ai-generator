@@ -108,6 +108,7 @@ def gallery_list(request):
                 'original_image_url': f"/media/{conversion.original_image_path}",
                 'original_image_name': conversion.original_image_name,
                 'prompt': conversion.prompt,
+                'model_name': conversion.model_name,
                 'preset_id': conversion.preset_id,
                 'preset_name': conversion.preset_name,
                 'generation_count': conversion.generation_count,
@@ -323,6 +324,7 @@ def image_detail(request, image_id):
                     'original_image_url': f"/media/{image.conversion.original_image_path}",
                     'aspect_ratio': image.conversion.aspect_ratio,
                     'prompt': image.conversion.prompt,
+                    'model_name': image.conversion.model_name,
                     'preset_id': image.conversion.preset_id,
                     'preset_name': image.conversion.preset_name,
                 }

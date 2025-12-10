@@ -109,7 +109,7 @@
   REDIS_URL=redis://localhost:6379/0
   GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
   GOOGLE_CLOUD_PROJECT=your-project-id
-  GOOGLE_CLOUD_LOCATION=us-central1
+  GOOGLE_CLOUD_LOCATION=global
   ```
 - [x] `.gitignore`に`.env`追加
 

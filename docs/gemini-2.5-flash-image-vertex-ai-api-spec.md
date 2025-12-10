@@ -76,10 +76,10 @@ POST https://{LOCATION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locat
 
 ### パラメータ
 - `{PROJECT_ID}`: Google CloudプロジェクトID
-- `{LOCATION}`: リージョン（例: `us-central1`, `global`）
+- `{LOCATION}`: リージョン（例: `global`, `global`）
 
 ### 推奨リージョン
-- `us-central1`
+- `global`
 - `global`（複数リージョンでの自動ルーティング）
 
 ---
@@ -299,7 +299,7 @@ from io import BytesIO
 client = genai.Client(
     vertexai=True,
     project='your-project-id',
-    location='us-central1',
+    location='global',
     http_options=HttpOptions(api_version='v1')
 )
 
@@ -376,7 +376,7 @@ import * as fs from 'node:fs';
 const ai = new GoogleGenAI({
   vertexai: true,
   project: 'your-project-id',
-  location: 'us-central1'
+  location: 'global'
 });
 
 // 画像生成リクエスト
@@ -423,7 +423,7 @@ func main() {
     // Vertex AI用のクライアント初期化
     client, err := genai.NewClient(ctx, &genai.ClientConfig{
         Project:  "your-project-id",
-        Location: "us-central1",
+        Location: "global",
         Backend:  genai.BackendVertexAI,
     })
     if err != nil {
@@ -469,7 +469,7 @@ func main() {
 ```bash
 # 環境変数の設定
 export PROJECT_ID="your-project-id"
-export LOCATION="us-central1"
+export LOCATION="global"
 export ACCESS_TOKEN=$(gcloud auth application-default print-access-token)
 
 # 画像生成リクエスト

@@ -23,13 +23,16 @@ class GeminiImageAPIError(Exception):
 
 class GeminiImageAPIService:
     """
-    Gemini 2.5 Flash Imageを使用した画像生成サービス
-
-    Vertex AI経由でgemini-2.5-flash-imageモデルを使用
+    Gemini系画像生成サービス
     """
 
-    # 使用するモデル
-    MODEL_NAME = "gemini-2.5-flash-image"
+    # モデル設定
+    DEFAULT_MODEL = "gemini-2.5-flash-image"
+    MODEL_NAME = DEFAULT_MODEL  # backward compatibility
+    SUPPORTED_MODELS = {
+        "gemini-2.5-flash-image",
+        "gemini-3-pro-image-preview",
+    }
     ORIGINAL_ASPECT_RATIO = "original"
 
     # サポートされるアスペクト比
@@ -56,7 +59,7 @@ class GeminiImageAPIService:
         try:
             # 環境変数から設定を取得
             project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
-            location = os.getenv('GOOGLE_CLOUD_LOCATION', 'us-central1')
+            location = os.getenv('GOOGLE_CLOUD_LOCATION', 'global')
             credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
             # バリデーション
@@ -77,7 +80,7 @@ class GeminiImageAPIService:
 
             logger.info(
                 f"Gemini Image API initialized: project={project_id}, "
-                f"location={location}, model={cls.MODEL_NAME}"
+                f"location={location}, default_model={cls.DEFAULT_MODEL}"
             )
 
             return client
@@ -177,7 +180,8 @@ class GeminiImageAPIService:
         original_image_path: str,
         prompt: str,
         generation_count: int = 3,
-        aspect_ratio: str = None
+        aspect_ratio: str = None,
+        model_name: str = None,
     ) -> List[Dict[str, Any]]:
         """
         参照画像を元に新しい画像を生成
@@ -189,7 +193,8 @@ class GeminiImageAPIService:
             aspect_ratio: アスペクト比（例: "4:3"）
 
         Returns:
-            生成結果のリスト
+            (results, model_used)
+            results: 生成結果のリスト
             [
                 {
                     "image_data": bytes,
@@ -198,6 +203,7 @@ class GeminiImageAPIService:
                 },
                 ...
             ]
+            model_used: 実際に使用したモデル名（フォールバック考慮）
 
         Raises:
             GeminiImageAPIError: 画像生成に失敗した場合
@@ -205,6 +211,15 @@ class GeminiImageAPIService:
         try:
             # クライアント初期化
             client = cls.initialize_client()
+
+            # モデル解決（リクエスト単位で固定。各生成ごとに都度試行し、必要に応じてフォールバック）
+            requested_model = model_name or cls.DEFAULT_MODEL
+            if requested_model not in cls.SUPPORTED_MODELS:
+                logger.warning(
+                    f"Unsupported model {requested_model}, "
+                    f"falling back to {cls.DEFAULT_MODEL}"
+                )
+                requested_model = cls.DEFAULT_MODEL
 
             # 元画像を読み込む
             image_data = cls.load_image(original_image_path)
@@ -226,6 +241,8 @@ class GeminiImageAPIService:
             results = []
 
             # 指定回数分生成
+            fallback_count = 0
+
             for i in range(generation_count):
                 try:
                     # バリエーション用のプロンプト構築
@@ -243,8 +260,9 @@ class GeminiImageAPIService:
                             aspect_ratio=resolved_aspect_ratio,
                         )
 
-                    response = client.models.generate_content(
-                        model=cls.MODEL_NAME,
+                    def _generate(model_to_use: str):
+                        return client.models.generate_content(
+                            model=model_to_use,
                         contents=[
                             types.Part.from_bytes(
                                 data=image_data,
@@ -258,6 +276,24 @@ class GeminiImageAPIService:
                             candidate_count=1,
                         ),
                     )
+
+                    try:
+                        response = _generate(requested_model)
+                        used_model_this_round = requested_model
+                    except Exception as api_error:
+                        # モデル未許可/未提供の場合はデフォルトモデルへフォールバック（このイテレーションのみ）
+                        if requested_model != cls.DEFAULT_MODEL and "NOT_FOUND" in str(api_error):
+                            logger.warning(
+                                "Model %s not available. Falling back to default %s (iteration %s)",
+                                requested_model,
+                                cls.DEFAULT_MODEL,
+                                i + 1,
+                            )
+                            response = _generate(cls.DEFAULT_MODEL)
+                            used_model_this_round = cls.DEFAULT_MODEL
+                            fallback_count += 1
+                        else:
+                            raise
 
                     # レスポンスから画像を取得
                     generated_image_data = None
@@ -291,7 +327,9 @@ class GeminiImageAPIService:
 
             logger.info(f"Successfully generated {len(results)} images")
 
-            return results
+            # すべての生成がフォールバックした場合のみ、実際のモデルとしてデフォルトを返す
+            batch_model_used = cls.DEFAULT_MODEL if (fallback_count == generation_count and requested_model != cls.DEFAULT_MODEL) else requested_model
+            return results, batch_model_used
 
         except Exception as e:
             logger.error(f"Image generation failed: {str(e)}")
@@ -385,11 +423,11 @@ class GeminiImageAPIService:
             client = cls.initialize_client()
 
             project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
-            location = os.getenv('GOOGLE_CLOUD_LOCATION', 'us-central1')
+            location = os.getenv('GOOGLE_CLOUD_LOCATION', 'global')
 
             # 簡単なテスト生成
             response = client.models.generate_content(
-                model=cls.MODEL_NAME,
+                model=cls.DEFAULT_MODEL,
                 contents="a simple test image of a red circle",
                 config=types.GenerateContentConfig(
                     response_modalities=['IMAGE'],
@@ -405,8 +443,8 @@ class GeminiImageAPIService:
 
             return {
                 "success": has_image,
-                "message": "Gemini 2.5 Flash Image APIへの接続に成功しました" if has_image else "接続は成功しましたが、画像生成に失敗しました",
-                "model_name": cls.MODEL_NAME,
+                "message": "Gemini Image APIへの接続に成功しました" if has_image else "接続は成功しましたが、画像生成に失敗しました",
+                "model_name": cls.DEFAULT_MODEL,
                 "project_id": project_id,
                 "location": location,
                 "has_image": has_image
@@ -417,7 +455,7 @@ class GeminiImageAPIService:
             return {
                 "success": False,
                 "message": f"接続テストに失敗しました: {str(e)}",
-                "model_name": cls.MODEL_NAME,
+                "model_name": cls.DEFAULT_MODEL,
                 "project_id": os.getenv('GOOGLE_CLOUD_PROJECT', 'Not set'),
                 "location": os.getenv('GOOGLE_CLOUD_LOCATION', 'Not set')
             }

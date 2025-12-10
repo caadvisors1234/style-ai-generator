@@ -224,9 +224,10 @@ class GeminiImageServiceTests(TestCase):
             models=SimpleNamespace(generate_content=lambda **kwargs: mock_response)
         )
 
-        results = GeminiImageAPIService.generate_images_from_reference('path.jpg', 'prompt', generation_count=1)
+        results, model_used = GeminiImageAPIService.generate_images_from_reference('path.jpg', 'prompt', generation_count=1)
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]['description'], 'desc')
+        self.assertEqual(model_used, GeminiImageAPIService.DEFAULT_MODEL)
 
     @patch('images.services.gemini_image_api.GeminiImageAPIService.load_image', return_value=b'input-bytes')
     @patch('images.services.gemini_image_api.GeminiImageAPIService.initialize_client')

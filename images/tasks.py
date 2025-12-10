@@ -17,6 +17,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import F, Value
 from django.db.models.functions import Greatest
+from django.core.cache import cache
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
@@ -25,6 +26,11 @@ from .services.gemini_image_api import GeminiImageAPIService, GeminiImageAPIErro
 
 
 logger = logging.getLogger(__name__)
+
+MODEL_MULTIPLIERS = {
+    'gemini-2.5-flash-image': 1,
+    'gemini-3-pro-image-preview': 5,
+}
 
 
 class ConversionCancelledError(Exception):
@@ -97,6 +103,9 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
             if conversion.status != 'processing':
                 conversion.mark_as_processing()
 
+            # 前回のフォールバック通知をクリア
+            cache.delete(f"conversion_fallback_{conversion.id}")
+
         _ensure_not_cancelled(conversion)
 
         # 進捗通知: 開始
@@ -133,14 +142,82 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
 
         _ensure_not_cancelled(conversion)
 
-        generated_results = GeminiImageAPIService.generate_images_from_reference(
+        requested_model = conversion.model_name
+
+        generated_results, model_used = GeminiImageAPIService.generate_images_from_reference(
             original_image_path=original_image_path,
             prompt=conversion.prompt,
             generation_count=conversion.generation_count,
             aspect_ratio=conversion.aspect_ratio,
+            model_name=conversion.model_name,
         )
 
         _ensure_not_cancelled(conversion)
+
+        # モデルがフォールバックした場合、実際に使ったモデル名と消費クレジットを補正
+        if model_used and model_used != conversion.model_name:
+            actual_multiplier = MODEL_MULTIPLIERS.get(model_used, 1)
+            actual_cost = conversion.generation_count * actual_multiplier
+            refund = max(0, conversion.usage_consumed - actual_cost)
+
+            conversion.model_name = model_used
+            conversion.usage_consumed = actual_cost
+            conversion.save(update_fields=['model_name', 'usage_consumed', 'updated_at'])
+
+            if refund > 0:
+                try:
+                    profile = conversion.user.profile
+                    profile_model = profile.__class__
+                    updated = profile_model.objects.filter(pk=profile.pk).update(
+                        monthly_used=Greatest(
+                            F('monthly_used') - refund,
+                            Value(0),
+                        )
+                    )
+                    if updated:
+                        profile.refresh_from_db(fields=['monthly_used'])
+                        if hasattr(profile, "invalidate_usage_cache"):
+                            profile.invalidate_usage_cache()
+                    logger.info(
+                        "Adjusted usage after fallback: refund=%s, actual_cost=%s, model=%s",
+                        refund,
+                        actual_cost,
+                        model_used,
+                    )
+                except Exception as refund_error:
+                    logger.error(
+                        "Failed to adjust usage after fallback: %s",
+                        refund_error,
+                    )
+
+            # WebSocket通知
+            async_to_sync(channel_layer.group_send)(
+                conversion_group,
+                {
+                    'type': 'conversion_progress',
+                    'message': f"{requested_model} が利用できなかったため {model_used} にフォールバックしました。消費クレジットを再計算しています。",
+                    'progress': 35,
+                    'status': 'processing',
+                    'fallback': True,
+                    'requested_model': requested_model,
+                    'used_model': model_used,
+                    'refund': refund,
+                    'usage_consumed': actual_cost,
+                }
+            )
+
+            # ポーリング用にキャッシュへ記録（1時間保持）
+            cache.set(
+                f"conversion_fallback_{conversion.id}",
+                {
+                    'fallback': True,
+                    'requested_model': requested_model,
+                    'used_model': model_used,
+                    'refund': refund,
+                    'usage_consumed': actual_cost,
+                },
+                timeout=3600,
+            )
 
         logger.info(f"Generated {len(generated_results)} images")
 
@@ -327,7 +404,7 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
                 profile_model = profile.__class__
                 updated = profile_model.objects.filter(pk=profile.pk).update(
                     monthly_used=Greatest(
-                        F('monthly_used') - conversion.generation_count,
+                        F('monthly_used') - conversion.usage_consumed,
                         Value(0),
                     )
                 )
@@ -339,7 +416,7 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
                 logger.info(
                     "Rolled back usage for user %s by %s",
                     profile.user_id,
-                    conversion.generation_count,
+                    conversion.usage_consumed,
                 )
             except Exception as rollback_error:
                 logger.error(
@@ -380,7 +457,7 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
                 profile_model = profile.__class__
                 updated = profile_model.objects.filter(pk=profile.pk).update(
                     monthly_used=Greatest(
-                        F('monthly_used') - conversion.generation_count,
+                        F('monthly_used') - conversion.usage_consumed,
                         Value(0),
                     )
                 )
@@ -392,7 +469,7 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
                 logger.info(
                     "Rolled back usage for user %s by %s",
                     profile.user_id,
-                    conversion.generation_count,
+                    conversion.usage_consumed,
                 )
             except Exception as rollback_error:
                 logger.error(

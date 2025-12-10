@@ -94,6 +94,12 @@ class ImageConversion(models.Model):
         verbose_name='使用プロンプト',
         help_text='画像変換に使用したプロンプト'
     )
+    model_name = models.CharField(
+        max_length=100,
+        default='gemini-2.5-flash-image',
+        verbose_name='モデル名',
+        help_text='画像生成に使用したモデル'
+    )
     preset_id = models.IntegerField(
         null=True,
         blank=True,
@@ -111,6 +117,12 @@ class ImageConversion(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         verbose_name='生成枚数',
         help_text='生成する画像の枚数（1-5枚）'
+    )
+    usage_consumed = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name='消費クレジット',
+        help_text='この変換で消費したクレジット数'
     )
     aspect_ratio = models.CharField(
         max_length=10,

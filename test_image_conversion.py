@@ -55,14 +55,14 @@ def test_image_conversion():
             print(f"[1/3] 画像変換を開始...")
 
             # 画像変換実行（3枚生成）
-            results = GeminiImageAPIService.generate_images_from_reference(
+            results, model_used = GeminiImageAPIService.generate_images_from_reference(
                 original_image_path=test_image['path'],
                 prompt=test_image['prompt'],
                 generation_count=3,
                 aspect_ratio='4:3'
             )
 
-            print(f"✅ {len(results)}枚の画像を生成しました")
+            print(f"✅ {len(results)}枚の画像を生成しました（使用モデル: {model_used}）")
             print()
 
             # 生成画像を保存

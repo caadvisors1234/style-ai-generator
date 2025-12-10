@@ -25,6 +25,7 @@
   let fallbackTimer = null;
   let totalCount = 0;
   let currentCount = 0;
+  let fallbackNotified = false;
 
   /**
    * 進捗バーを更新
@@ -137,6 +138,16 @@
       } else if (data.totalCount !== undefined) {
         totalCount = data.totalCount;
       }
+
+      if (data.fallback && !fallbackNotified) {
+        const requested = data.requested_model || '指定モデル';
+        const used = data.used_model || '利用モデル';
+        const refund = data.refund ?? null;
+        const refundText = refund && refund > 0 ? `（返金 ${refund} クレジット）` : '';
+        notifyWarning(`${requested} が利用できなかったため ${used} にフォールバックしました。消費クレジットを再計算しました${refundText}`);
+        fallbackNotified = true;
+      }
+
       updateBar(data.progress, data.status, data.message);
       updateCounter(data.status);
     });
@@ -198,6 +209,15 @@
 
         totalCount = conversion.generation_count || 0;
         currentCount = conversion.current_count || 0;
+
+        if (conversion.fallback && !fallbackNotified) {
+          const requested = conversion.fallback.requested_model || '指定モデル';
+          const used = conversion.fallback.used_model || conversion.fallback.model_used || '利用モデル';
+          const refund = conversion.fallback.refund ?? null;
+          const refundText = refund && refund > 0 ? `（返金 ${refund} クレジット）` : '';
+          notifyWarning(`${requested} が利用できなかったため ${used} にフォールバックしました。消費クレジットを再計算しました${refundText}`);
+          fallbackNotified = true;
+        }
 
         let progress = 10;
         if (totalCount > 0) {

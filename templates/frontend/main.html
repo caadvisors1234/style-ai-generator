@@ -117,8 +117,8 @@
         <textarea id="custom-prompt" class="form-control" rows="4" placeholder="仕上がりイメージや要望を具体的に記述してください"></textarea>
     </div>
     <div class="row g-3" style="margin-bottom: 2rem;">
-        <div class="col-md-3">
-            <label for="generation-count" class="form-label">生成枚数</label>
+        <div class="col-md-4">
+            <label for="generation-count" class="form-label">生成枚数（画像数）</label>
             <select id="generation-count" class="form-select">
                 <option value="1" selected>1枚</option>
                 <option value="2">2枚</option>
@@ -126,8 +126,17 @@
                 <option value="4">4枚</option>
                 <option value="5">5枚</option>
             </select>
+            <div class="form-text">消費クレジット = 画像数 × モデル倍率（標準1、上位5）</div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
+            <label for="model-variant" class="form-label">モデル選択（クレジット）</label>
+            <select id="model-variant" class="form-select">
+                <option value="gemini-2.5-flash-image" selected>標準: Gemini 2.5 Flash Image（1クレジット/画像）</option>
+                <option value="gemini-3-pro-image-preview">上位: Gemini 3 Pro Image Preview（5クレジット/画像・1K固定）</option>
+            </select>
+            <div class="form-text">上位モデルは出力サイズを1Kに固定します</div>
+        </div>
+        <div class="col-md-4">
             <label for="aspect-ratio" class="form-label">画像比率</label>
             <select id="aspect-ratio" class="form-select">
                 <option value="original" selected>そのまま（元画像を維持）</option>
@@ -152,7 +161,7 @@
 </section>
 
 <template id="uploaded-item-template">
-    <div class="col-md-4">
+    <div class="col-6 col-sm-6 col-md-4">
         <div class="card h-100">
             <img src="" class="card-img-top uploaded-thumb" alt="">
             <div class="card-body">

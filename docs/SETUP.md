@@ -113,7 +113,7 @@ redis-cli ping
 ```bash
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 GOOGLE_CLOUD_PROJECT=your-project-id
-GOOGLE_CLOUD_LOCATION=us-central1
+GOOGLE_CLOUD_LOCATION=global
 ```
 
 ## 開発時の簡易セットアップ（オプション）

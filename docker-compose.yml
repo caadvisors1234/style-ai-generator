@@ -51,7 +51,7 @@ services:
       - CSRF_TRUSTED_ORIGINS=https://style-ai-generator.ai-beauty.tokyo
       - GOOGLE_APPLICATION_CREDENTIALS=/app/style-ai-generator-476813-0433912db925.json
       - GOOGLE_CLOUD_PROJECT=style-ai-generator-476813
-      - GOOGLE_CLOUD_LOCATION=us-central1
+      - GOOGLE_CLOUD_LOCATION=global
     depends_on:
       db:
         condition: service_healthy
@@ -83,7 +83,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - GOOGLE_APPLICATION_CREDENTIALS=/app/style-ai-generator-476813-0433912db925.json
       - GOOGLE_CLOUD_PROJECT=style-ai-generator-476813
-      - GOOGLE_CLOUD_LOCATION=us-central1
+      - GOOGLE_CLOUD_LOCATION=global
     depends_on:
       db:
         condition: service_healthy
@@ -114,7 +114,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - GOOGLE_APPLICATION_CREDENTIALS=/app/style-ai-generator-476813-0433912db925.json
       - GOOGLE_CLOUD_PROJECT=style-ai-generator-476813
-      - GOOGLE_CLOUD_LOCATION=us-central1
+      - GOOGLE_CLOUD_LOCATION=global
     depends_on:
       db:
         condition: service_healthy

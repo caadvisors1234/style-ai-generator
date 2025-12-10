@@ -87,6 +87,13 @@ class ImageConversionConsumer(AsyncWebsocketConsumer):
         if 'total' in event:
             message_data['total'] = event['total']
             message_data['totalCount'] = event['total']  # 互換性のため
+        # フォールバック情報があれば付加
+        if event.get('fallback'):
+            message_data['fallback'] = True
+            message_data['requested_model'] = event.get('requested_model')
+            message_data['used_model'] = event.get('used_model')
+            message_data['refund'] = event.get('refund')
+            message_data['usage_consumed'] = event.get('usage_consumed')
         await self.send(text_data=json.dumps(message_data))
 
     async def conversion_completed(self, event):

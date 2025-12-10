@@ -12,6 +12,7 @@ from django.db import transaction
 from django.db.models import F, Value
 from django.db.models.functions import Greatest
 from django.http import JsonResponse
+from django.core.cache import cache
 from django.views.decorators.http import require_http_methods
 
 from api.decorators import login_required_api
@@ -24,6 +25,11 @@ from images.services.upload import ImageUploadService, UploadValidationError
 
 
 logger = logging.getLogger(__name__)
+
+MODEL_MULTIPLIERS = {
+    'gemini-2.5-flash-image': 1,
+    'gemini-3-pro-image-preview': 5,
+}
 
 
 @require_http_methods(["POST"])
@@ -62,6 +68,11 @@ def convert_start(request):
         image_file = request.FILES.get('image')
         prompt = request.POST.get('prompt')
         generation_count = int(request.POST.get('generation_count', 1))
+        requested_model = request.POST.get('model_variant') or request.POST.get('model')
+        model_name = requested_model or GeminiImageAPIService.DEFAULT_MODEL
+        if model_name not in MODEL_MULTIPLIERS:
+            model_name = GeminiImageAPIService.DEFAULT_MODEL
+        usage_cost = generation_count * MODEL_MULTIPLIERS[model_name]
 
         aspect_ratio = request.POST.get('aspect_ratio') or GeminiImageAPIService.DEFAULT_ASPECT_RATIO
         preset_id_raw = request.POST.get('preset_id')
@@ -87,7 +98,7 @@ def convert_start(request):
         if generation_count < 1 or generation_count > 5:
             return JsonResponse({
                 'status': 'error',
-                'message': '生成枚数は1から5の間で指定してください'
+                'message': '生成数は1から5の間で指定してください'
             }, status=400)
 
         if aspect_ratio not in GeminiImageAPIService.SUPPORTED_ASPECT_RATIOS:
@@ -97,10 +108,10 @@ def convert_start(request):
             }, status=400)
 
         # 月次利用制限チェック
-        if not profile.can_generate(generation_count):
+        if not profile.can_generate(usage_cost):
             return JsonResponse({
                 'status': 'error',
-                'message': f'月次利用上限に達しています（残り: {profile.remaining}枚）'
+                'message': f'月次利用上限に達しています（残り: {profile.remaining}クレジット）'
             }, status=403)
 
         upload_service = ImageUploadService(user_id=request.user.id)
@@ -137,11 +148,13 @@ def convert_start(request):
                 preset_name=preset_name,
                 generation_count=generation_count,
                 aspect_ratio=aspect_ratio,
-                status='pending'
+                status='pending',
+                model_name=model_name,
+                usage_consumed=usage_cost,
             )
 
             # 利用回数を事前に増やす（タスク失敗時はロールバック）
-            profile.increment_usage(generation_count)
+            profile.increment_usage(usage_cost)
 
         # Celeryタスク投入
         task = process_image_conversion.delay(conversion.id)
@@ -161,6 +174,7 @@ def convert_start(request):
             'task_id': task.id,
             'estimated_time': estimated_time,
             'aspect_ratio': aspect_ratio,
+            'model': model_name,
         })
 
     except ValueError:
@@ -250,6 +264,8 @@ def convert_status(request, conversion_id):
             'conversion': {
                 'id': conversion.id,
                 'status': conversion.status,
+                'model_name': conversion.model_name,
+                'usage_consumed': conversion.usage_consumed,
                 'created_at': conversion.created_at.isoformat(),
                 'updated_at': conversion.updated_at.isoformat(),
                 'generation_count': conversion.generation_count,
@@ -257,6 +273,10 @@ def convert_status(request, conversion_id):
                 'aspect_ratio': conversion.aspect_ratio,
             }
         }
+
+        fallback_info = cache.get(f"conversion_fallback_{conversion.id}")
+        if fallback_info:
+            response_data['conversion']['fallback'] = fallback_info
 
         # ステータスごとの追加情報
         if conversion.status == 'completed':
@@ -357,7 +377,7 @@ def convert_cancel(request, conversion_id):
                 profile_model = profile.__class__
                 updated = profile_model.objects.filter(pk=profile.pk).update(
                     monthly_used=Greatest(
-                        F('monthly_used') - conversion.generation_count,
+                        F('monthly_used') - conversion.usage_consumed,
                         Value(0),
                     )
                 )
