@@ -559,6 +559,7 @@ curl -X POST \
 - JPEG (`image/jpeg`)
 - WebP (`image/webp`)
 - GIF (`image/gif`)
+- HEIC / HEIF はクライアント側でJPEGへ変換してから送信（互換性確保のため）
 
 #### 出力画像形式
 - PNG (`image/png`) - Base64エンコード形式

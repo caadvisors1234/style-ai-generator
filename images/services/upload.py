@@ -10,6 +10,10 @@ from PIL import Image
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 
+# HEIC/HEIF MIME を登録（guess_type 補完用）
+mimetypes.add_type("image/heic", ".heic")
+mimetypes.add_type("image/heif", ".heif")
+
 
 class UploadValidationError(Exception):
     """アップロードバリデーションエラー"""
@@ -20,8 +24,21 @@ class ImageUploadService:
     """画像アップロード処理サービス"""
 
     # 許可するファイル形式
-    ALLOWED_FORMATS = {'image/jpeg', 'image/png', 'image/webp'}
-    ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp'}
+    ALLOWED_FORMATS: Tuple[str, ...] = (
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/heic',
+        'image/heif',
+    )
+    ALLOWED_EXTENSIONS: Tuple[str, ...] = (
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.webp',
+        '.heic',
+        '.heif',
+    )
 
     # ファイルサイズ制限（10MB）
     MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -76,7 +93,7 @@ class ImageUploadService:
             # 拡張子が正しければ許可（ブラウザによってcontent_typeが異なる場合があるため）
             if file_ext not in self.ALLOWED_EXTENSIONS:
                 raise UploadValidationError(
-                    f'対応していないファイル形式です。対応形式: JPEG, PNG, WebP'
+                    f'対応していないファイル形式です。対応形式: JPEG, PNG, WebP, HEIC/HEIF'
                 )
 
         # 画像ファイルとして開けるか確認
@@ -103,17 +120,18 @@ class ImageUploadService:
                 f'一度にアップロードできるファイル数は{self.MAX_FILES_COUNT}個までです'
             )
 
-    def generate_unique_filename(self, original_filename: str) -> str:
+    def generate_unique_filename(self, original_filename: str, target_ext: Optional[str] = None) -> str:
         """
         UUIDベースのユニークなファイル名を生成
 
         Args:
             original_filename: 元のファイル名
+            target_ext: 保存時に使う拡張子（省略時は元の拡張子を利用）
 
         Returns:
             ユニークなファイル名
         """
-        file_ext = Path(original_filename).suffix.lower()
+        file_ext = (target_ext or Path(original_filename).suffix).lower()
         unique_id = uuid.uuid4().hex
         return f"{unique_id}{file_ext}"
 
@@ -127,14 +145,32 @@ class ImageUploadService:
         Returns:
             保存情報（file_path, file_name, file_size, thumbnail_path）
         """
-        # ユニークなファイル名生成
-        unique_filename = self.generate_unique_filename(uploaded_file.name)
+        original_ext = Path(uploaded_file.name).suffix.lower()
+        save_ext = '.jpg' if original_ext in ('.heic', '.heif') else original_ext
+
+        # ユニークなファイル名生成（HEIC/HEIFはJPEGに変換して保存）
+        unique_filename = self.generate_unique_filename(uploaded_file.name, target_ext=save_ext)
         file_path = self.user_upload_dir / unique_filename
 
-        # ファイル保存
-        with open(file_path, 'wb+') as destination:
-            for chunk in uploaded_file.chunks():
-                destination.write(chunk)
+        if original_ext in ('.heic', '.heif'):
+            # PILで開いてJPEGへ再エンコード（ブラウザ互換性を確保）
+            uploaded_file.seek(0)
+            with Image.open(uploaded_file) as img:
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode == 'P':
+                        img = img.convert('RGBA')
+                    background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+                    img = background
+                elif img.mode != 'RGB':
+                    img = img.convert('RGB')
+
+                img.save(file_path, 'JPEG', quality=95, optimize=True)
+        else:
+            # オリジナル形式のまま保存
+            with open(file_path, 'wb+') as destination:
+                for chunk in uploaded_file.chunks():
+                    destination.write(chunk)
 
         # サムネイル生成
         thumbnail_path = self.create_thumbnail(file_path)
@@ -146,7 +182,7 @@ class ImageUploadService:
         return {
             'file_path': relative_file_path,
             'file_name': uploaded_file.name,
-            'file_size': uploaded_file.size,
+            'file_size': os.path.getsize(file_path),
             'thumbnail_path': relative_thumbnail_path,
         }
 

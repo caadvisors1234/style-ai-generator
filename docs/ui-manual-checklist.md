@@ -10,7 +10,7 @@
 - [x] `/login/?next=/gallery/` からログインし、成功後 `next` 先に遷移。（2025-11-01 Playwright）
 
 ## 2. アップロードと変換
-- [x] JPEG / PNG / WebP をアップロードしプレビュー表示。（2025-11-01 Playwright）
+- [x] JPEG / PNG / WebP / HEIC / HEIF をアップロードしプレビュー表示（HEIC/HEIF はアップロード時にJPEG保存）。（2025-11-01 Playwright）
 - [x] 10MB 超・未サポート拡張子は API テストで拒否を確認。（既存ユニットテスト）
 - [x] プリセット選択・カスタム入力が反映。（2025-11-01 Playwright）
 - [x] 変換開始で処理中→完了ステータス、進捗バー／X/Y 表示を確認。（2025-11-01 Playwright＋ログ）

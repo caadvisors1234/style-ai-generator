@@ -203,7 +203,7 @@ def validate_upload(request):
             return JsonResponse({
                 'status': 'error',
                 'valid': False,
-                'message': '対応していないファイル形式です。対応形式: JPEG, PNG, WebP'
+                'message': '対応していないファイル形式です。対応形式: JPEG, PNG, WebP, HEIC/HEIF'
             })
 
         # 拡張子チェック

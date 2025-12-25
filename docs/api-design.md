@@ -308,7 +308,7 @@ files: [File, File, ...]  # 最大10ファイル
     "code": "INVALID_FILE",
     "message": "対応していないファイル形式です",
     "details": {
-      "allowed_types": ["image/jpeg", "image/png", "image/webp"],
+      "allowed_types": ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"],
       "max_size": 10485760
     }
   }
@@ -316,7 +316,7 @@ files: [File, File, ...]  # 最大10ファイル
 ```
 
 **バリデーション**:
-- ファイル形式: JPEG, PNG, WebP
+- ファイル形式: JPEG, PNG, WebP, HEIC/HEIF（HEIC/HEIF はアップロード時にJPEGへ変換して保存）
 - 最大サイズ: 10MB/ファイル
 - 同時アップロード: 最大10ファイル
 

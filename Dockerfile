@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     build-essential \
     libpq-dev \
+    libheif1 \
+    libheif-dev \
+    libde265-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Pythonパッケージのインストール
