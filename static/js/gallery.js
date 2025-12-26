@@ -85,17 +85,69 @@
     pagination.innerHTML = '';
     if (meta.total_pages <= 1) return;
 
-    for (let i = 1; i <= meta.total_pages; i += 1) {
-      const item = document.createElement('li');
-      item.className = `page-item ${i === meta.current_page ? 'active' : ''}`;
-      const link = document.createElement('a');
-      link.className = 'page-link';
-      link.href = '#';
-      link.dataset.page = i;
-      link.textContent = i;
-      item.appendChild(link);
-      pagination.appendChild(item);
+    const currentPage = meta.current_page;
+    const totalPages = meta.total_pages;
+    const delta = 2; // 現在のページの前後に表示するページ数
+
+    // ページ番号の配列を生成
+    const pages = [];
+    
+    // ページ数が少ない場合は全て表示
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // 常に最初のページを追加
+      pages.push(1);
+      
+      // 現在のページ周辺のページを計算
+      const startPage = Math.max(2, currentPage - delta);
+      const endPage = Math.min(totalPages - 1, currentPage + delta);
+      
+      // 最初のページとstartPageの間にギャップがある場合は「...」を追加
+      if (startPage > 2) {
+        pages.push('ellipsis-start');
+      }
+      
+      // 現在のページ周辺のページを追加（1とtotalPagesは除外）
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      // endPageと最後のページの間にギャップがある場合は「...」を追加
+      if (endPage < totalPages - 1) {
+        pages.push('ellipsis-end');
+      }
+      
+      // 常に最後のページを追加
+      pages.push(totalPages);
     }
+    
+    // ページネーション要素を生成
+    pages.forEach((page) => {
+      if (page === 'ellipsis-start' || page === 'ellipsis-end') {
+        // 省略記号を表示
+        const item = document.createElement('li');
+        item.className = 'page-item disabled';
+        const span = document.createElement('span');
+        span.className = 'page-link';
+        span.textContent = '...';
+        item.appendChild(span);
+        pagination.appendChild(item);
+      } else {
+        // 通常のページ番号
+        const item = document.createElement('li');
+        item.className = `page-item ${page === currentPage ? 'active' : ''}`;
+        const link = document.createElement('a');
+        link.className = 'page-link';
+        link.href = '#';
+        link.dataset.page = page;
+        link.textContent = page;
+        item.appendChild(link);
+        pagination.appendChild(item);
+      }
+    });
   }
 
   let autoReloadTimer = null;
