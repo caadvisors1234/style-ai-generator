@@ -67,7 +67,7 @@
    */
   function startTipsRotation() {
     if (tipsTimer) clearInterval(tipsTimer);
-    
+
     // 初回ランダム
     if (tipsTextEl) {
       tipsTextEl.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
@@ -75,16 +75,16 @@
 
     tipsTimer = setInterval(() => {
       if (!tipsTextEl) return;
-      
+
       // フェードアウト
       tipsTextEl.style.opacity = '0';
       tipsTextEl.style.transform = 'translateY(5px)';
-      
+
       setTimeout(() => {
         // テキスト変更
         const randomTip = TIPS[Math.floor(Math.random() * TIPS.length)];
         tipsTextEl.textContent = randomTip;
-        
+
         // フェードイン
         tipsTextEl.style.opacity = '1';
         tipsTextEl.style.transform = 'translateY(0)';
@@ -103,7 +103,7 @@
 
     // フェーズ情報の更新
     const phase = getPhaseInfo(progress);
-    
+
     if (statusPhaseEl) {
       if (status === 'completed') {
         statusPhaseEl.textContent = '変換完了';
@@ -236,7 +236,7 @@
 
     // 完了イベント
     ws.on('completed', (data) => {
-      handleCompleted(data.images || []);
+      handleCompleted(data.images || [], data.success_count, data.requested_count);
     });
 
     // 失敗イベント
@@ -328,7 +328,8 @@
   /**
    * 完了処理
    */
-  function handleCompleted(images) {
+
+  function handleCompleted(images, successCount = null, requestedCount = null) {
     if (ws) {
       ws.disconnect();
       ws = null;
@@ -341,7 +342,29 @@
       clearInterval(tipsTimer);
     }
 
-    notifySuccess('画像変換が完了しました');
+    // 部分的成功のチェック (images.length vs requestedCount)
+    // imagesが渡されない場合もあるため、その場合はimages.lengthを使用
+    const actualSuccess = successCount !== null ? successCount : (images ? images.length : 0);
+    // requestedCountは引数で来ない場合、グローバルのtotalCountを使用
+    const targetCount = requestedCount !== null ? requestedCount : totalCount;
+
+    // 全て失敗した場合（0枚成功）
+    if (targetCount > 0 && actualSuccess === 0) {
+      notifyError(`画像生成に失敗しました（${targetCount}枚すべて失敗）`);
+      updateBar(100, 'failed', '画像が生成されませんでした');
+      if (cancelBtn) {
+        cancelBtn.disabled = true;
+      }
+      return; // リダイレクトせずに終了
+    }
+
+    // 部分的成功の場合
+    if (targetCount > 0 && actualSuccess < targetCount) {
+      notifyWarning(`完了しましたが、${targetCount}枚中${actualSuccess}枚のみ生成されました。`);
+    } else {
+      notifySuccess('画像変換が完了しました');
+    }
+
     updateBar(100, 'completed', '完了しました！ギャラリーへ移動します...');
     updateCounter('completed', images);
 
@@ -349,9 +372,10 @@
       cancelBtn.disabled = true;
     }
 
+    // 即時リダイレクトせず、少し待機して余韻を残す
     setTimeout(() => {
       window.location.href = '/gallery/';
-    }, 2000);
+    }, 1500); // 1.5秒待機
   }
 
   /**
@@ -418,7 +442,7 @@
     try {
       await APIClient.post(`/api/v1/convert/${conversionId}/cancel/`, {});
       notifyWarning('変換をキャンセルしました');
-      
+
       if (ws) {
         ws.disconnect();
         ws = null;

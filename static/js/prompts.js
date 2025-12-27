@@ -270,6 +270,21 @@
       if (preset) {
         saveRecentPrompt(preset);
       }
+      
+      // 視覚的フィードバック
+      if (typeof notifySuccess === 'function') {
+        notifySuccess('プリセットを適用しました');
+      } else {
+        // notifySuccessが利用できない場合のフォールバック（点滅など）
+        const promptArea = document.getElementById(customPromptId);
+        if (promptArea) {
+            promptArea.style.transition = 'background-color 0.2s';
+            promptArea.style.backgroundColor = '#e8f0fe';
+            setTimeout(() => {
+                promptArea.style.backgroundColor = '';
+            }, 300);
+        }
+      }
     }
   }
 

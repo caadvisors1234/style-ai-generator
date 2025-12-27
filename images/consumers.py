@@ -103,11 +103,17 @@ class ImageConversionConsumer(AsyncWebsocketConsumer):
         Args:
             event: 完了イベントデータ
         """
-        await self.send(text_data=json.dumps({
+        payload = {
             'type': 'completed',
             'message': event['message'],
             'images': event['images']
-        }))
+        }
+        if 'success_count' in event:
+            payload['success_count'] = event['success_count']
+        if 'requested_count' in event:
+            payload['requested_count'] = event['requested_count']
+            
+        await self.send(text_data=json.dumps(payload))
 
     async def conversion_failed(self, event):
         """

@@ -343,13 +343,24 @@ def process_image_conversion(self, conversion_id: int) -> Dict[str, Any]:
         # ステータスを完了に更新
         conversion.mark_as_completed(processing_time)
 
+        # 完了メッセージの構築
+        success_count = len(saved_images)
+        requested_count = conversion.generation_count
+        
+        if success_count < requested_count:
+            completion_message = f'画像変換が完了しました（{requested_count}枚中{success_count}枚成功）'
+        else:
+            completion_message = '画像変換が完了しました！'
+
         # 進捗通知: 完了
         async_to_sync(channel_layer.group_send)(
             conversion_group,
             {
                 'type': 'conversion_completed',
-                'message': '画像変換が完了しました！',
-                'images': saved_images
+                'message': completion_message,
+                'images': saved_images,
+                'success_count': success_count,
+                'requested_count': requested_count
             }
         )
 

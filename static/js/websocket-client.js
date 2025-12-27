@@ -12,10 +12,10 @@
     constructor(conversionId, options = {}) {
       this.conversionId = conversionId;
       this.options = {
-        reconnectInterval: options.reconnectInterval || 3000,
-        maxReconnectAttempts: options.maxReconnectAttempts || 5,
+        reconnectInterval: options.reconnectInterval || 1000, // 1秒間隔で再接続試行
+        maxReconnectAttempts: options.maxReconnectAttempts || 3, // 3回失敗したらポーリングへ
         enableFallback: options.enableFallback !== false, // デフォルトで有効
-        fallbackPollInterval: options.fallbackPollInterval || 4000,
+        fallbackPollInterval: options.fallbackPollInterval || 2000, // 2秒間隔でポーリング
         ...options,
       };
 
@@ -150,6 +150,8 @@
           this.emit('completed', {
             message: data.message,
             images: data.images || [],
+            success_count: data.success_count,
+            requested_count: data.requested_count,
           });
           break;
 
@@ -293,7 +295,7 @@
     connect() {
       this.conversionIds.forEach((id) => {
         const ws = new ConversionWebSocket(id, this.options);
-        
+
         // 各イベントを転送
         ws.on('progress', (data) => {
           this.emit('progress', { conversionId: id, ...data });
