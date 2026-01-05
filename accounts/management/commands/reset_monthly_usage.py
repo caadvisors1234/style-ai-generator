@@ -39,11 +39,8 @@ class Command(BaseCommand):
         """
         dry_run = options.get('dry_run', False)
 
-        # リセット対象のUserProfileを取得（削除されていない、使用回数が0より大きい）
-        target_profiles = UserProfile.objects.filter(
-            is_deleted=False,
-            monthly_used__gt=0
-        )
+        # リセット対象のUserProfileを取得（使用回数が0より大きい）
+        target_profiles = UserProfile.objects.filter(monthly_used__gt=0)
 
         count = target_profiles.count()
 
