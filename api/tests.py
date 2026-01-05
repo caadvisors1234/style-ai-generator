@@ -476,8 +476,11 @@ class GalleryAPITestCase(TestCase):
         self.assertEqual(delete_image_resp.status_code, 200)
         self.assertEqual(delete_image_resp.json()['status'], 'success')
 
+        self.conversion.refresh_from_db()
+        self.assertTrue(self.conversion.is_deleted)
+
         delete_conv_resp = self.client.delete(f'/api/v1/gallery/{self.conversion.id}/delete/')
-        self.assertEqual(delete_conv_resp.status_code, 200)
+        self.assertEqual(delete_conv_resp.status_code, 404)
         self.assertFalse(ImageConversion.objects.filter(id=self.conversion.id, is_deleted=False).exists())
 
     def test_gallery_permission_denied_for_other_user(self):
@@ -508,13 +511,16 @@ class IntegrationFlowTests(TestCase):
         client = Client()
         client.login(username='flowuser', password='password123')
 
-        mock_generate.return_value = [{
-            'image_data': b'\xff\xd8\xff\xd9',
-            'description': 'generated',
-            'generation_number': 1,
-            'prompt_used': 'prompt',
-            'aspect_ratio': '3:4'
-        }]
+        mock_generate.return_value = (
+            [{
+                'image_data': b'\xff\xd8\xff\xd9',
+                'description': 'generated',
+                'generation_number': 1,
+                'prompt_used': 'prompt',
+                'aspect_ratio': '3:4'
+            }],
+            'gemini-2.5-flash-image'
+        )
 
         def save_generated(image_data, output_dir, filename):
             relative = os.path.join(output_dir, filename)
