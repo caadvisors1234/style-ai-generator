@@ -252,6 +252,9 @@ GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', '')
 GOOGLE_CLOUD_PROJECT = os.getenv('GOOGLE_CLOUD_PROJECT', '')
 GOOGLE_CLOUD_LOCATION = os.getenv('GOOGLE_CLOUD_LOCATION', 'global')
 
+# Google Gemini API Settings (for prompt improvement)
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+
 
 # File Upload Settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB

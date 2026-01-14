@@ -1,109 +1,210 @@
----
-description: Apply this rule to the entire repository
-globs: 
-alwaysApply: true
----
-まず、このファイルを参照したら、このファイル名を発言すること
+# CLAUDE.md
 
-あなたは高度な問題解決能力を持つAIアシスタントです。以下の指示に従って、効率的かつ正確にタスクを遂行してください。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-まず、ユーザーから受け取った指示を確認します：
-<指示>
-{{instructions}}
-<!-- このテンプレート変数はユーザーの入力プロンプトに自動置換されます -->
-</指示>
+## Project Overview
 
-この指示を元に、以下のプロセスに従って作業を進めてください：
+美容室向けのAI画像変換Webアプリケーション。モデル・スタイリスト画像をVertex AI経由のGemini 2.5 Flash Imageモデルで高品質に変換します。
 
----
+## Tech Stack
 
-1. 指示の分析と計画
-   <タスク分析>
-   - 主要なタスクを簡潔に要約してください。
-   - 重要な要件と制約を特定してください。
-   - 潜在的な課題をリストアップしてください。
-   - タスク実行のための具体的なステップを詳細に列挙してください。
-   - それらのステップの最適な実行順序を決定してください。
-   
-   ### 重複実装の防止
-   実装前に以下の確認を行ってください：
-   - 既存の類似機能の有無
-   - 同名または類似名の関数やコンポーネント
-   - 重複するAPIエンドポイント
-   - 共通化可能な処理の特定
+**DO NOT change these versions without approval:**
+- Python 3.11+
+- Django 5.0.x
+- Celery 5.x with Redis 7
+- Django Channels 4.x / Daphne (WebSocket support)
+- PostgreSQL 14 (production) / SQLite (development fallback)
+- Vertex AI: Gemini 2.5 Flash Image (`google-genai`, `google-cloud-aiplatform`)
+- Docker / docker-compose
 
-   このセクションは、後続のプロセス全体を導くものなので、時間をかけてでも、十分に詳細かつ包括的な分析を行ってください。
-   </タスク分析>
+## Development Commands
 
----
+### Local Development
+```bash
+# Start development server (includes WebSocket/ASGI support)
+python manage.py runserver
 
-2. タスクの実行
-   - 特定したステップを一つずつ実行してください。
-   - 各ステップの完了後、簡潔に進捗を報告してください。
-   - 実装時は以下の点に注意してください：
-     - 適切なディレクトリ構造の遵守
-     - 命名規則の一貫性維持
-     - 共通処理の適切な配置
+# Database setup
+python manage.py migrate
+python manage.py createsuperuser
 
----
+# Load prompt presets fixture
+python manage.py loaddata images/fixtures/prompt_presets.json
 
-3. 品質管理と問題対応
-   - 各タスクの実行結果を迅速に検証してください。
-   - エラーや不整合が発生した場合は、以下のプロセスで対応してください：
-     a. 問題の切り分けと原因特定（ログ分析、デバッグ情報の確認）
-     b. 対策案の作成と実施
-     c. 修正後の動作検証
-     d. デバッグログの確認と分析
-   
-   - 検証結果は以下の形式で記録してください：
-     a. 検証項目と期待される結果
-     b. 実際の結果と差異
-     c. 必要な対応策（該当する場合）
+# Celery worker (async task processing)
+celery -A config worker -l info
 
----
+# Celery beat (scheduled tasks - monthly usage reset)
+celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+```
 
-4. 最終確認
-   - すべてのタスクが完了したら、成果物全体を評価してください。
-   - 当初の指示内容との整合性を確認し、必要に応じて調整を行ってください。
-   - 実装した機能に重複がないことを最終確認してください。
+### Docker
+```bash
+# Start all services (web, db, redis, celery, celery-beat)
+docker-compose up --build
 
----
+# Services run on:
+# - web: daphne on port 8000 (ASGI for HTTP + WebSocket)
+# - db: PostgreSQL 14
+# - redis: Redis 7 (Celery broker + Channels layer)
+# - celery: worker process
+# - celery-beat: scheduler process
+```
 
-5. 結果報告
-   以下のフォーマットで最終的な結果を報告してください：
-   ```markdown
-   # 実行結果報告
+### Testing
+```bash
+# Run all tests
+python manage.py test
 
-   ## 概要
-   [全体の要約を簡潔に記述]
+# Test Gemini API connection
+python test_gemini_connection.py
 
-   ## 実行ステップ
-   1. [ステップ1の説明と結果]
-   2. [ステップ2の説明と結果]
-   ...
+# Smoke test for image conversion
+python test_image_conversion.py
+```
 
-   ## 最終成果物
-   [成果物の詳細や、該当する場合はリンクなど]
+## Architecture Overview
 
-   ## 課題対応（該当する場合）
-   - 発生した問題と対応内容
-   - 今後の注意点
+### Django Apps Structure
 
-   ## 注意点・改善提案
-   - [気づいた点や改善提案があれば記述]
-   ```
-   
----
+**config/** - Project configuration
+- `settings.py`: Django settings, Celery config, Channels config, Google Cloud credentials
+- `urls.py`: Root URL routing (delegates to `api.urls`)
+- `asgi.py`: ASGI application with WebSocket routing (`images.routing.websocket_urlpatterns`)
+- `celery.py`: Celery app initialization
 
-## 重要な注意事項
+**accounts/** - User management
+- `UserProfile` model: Extends Django User with `monthly_limit` and `monthly_usage` tracking
+- Management command: `reset_monthly_usage` (scheduled via Celery Beat)
+- Methods: `can_generate()`, `increment_usage()`, `remaining()`, `usage_percentage()`
 
-- 不明点がある場合は、作業開始前に必ず確認を取ってください。
-- 重要な判断が必要な場合は、その都度報告し、承認を得てください。
-- 予期せぬ問題が発生した場合は、即座に報告し、対応策を提案してください。
-- **明示的に指示されていない変更は行わないでください。** 必要と思われる変更がある場合は、まず提案として報告し、承認を得てから実施してください。
-- **特に UI/UXデザインの変更（レイアウト、色、フォント、間隔など）は禁止**とし、変更が必要な場合は必ず事前に理由を示し、承認を得てから行ってください。
-- **技術スタックに記載のバージョン（APIやフレームワーク、ライブラリ等）を勝手に変更しないでください。** 変更が必要な場合は、その理由を明確にして承認を得るまでは変更を行わないでください。
+**images/** - Core image conversion domain
+- Models:
+  - `ImageConversion`: Conversion job (status: pending/processing/completed/failed/cancelled)
+  - `GeneratedImage`: Generated images with brightness adjustment, expiration tracking
+  - `PromptPreset`: Preset prompts (category, prompt text, thumbnail)
+  - `UserFavoritePrompt`: User's favorite presets
+- Services (in `images/services/`):
+  - `gemini_image_api.py`: `GeminiImageAPIService` - Vertex AI integration, image generation
+  - `brightness.py`: Pillow-based brightness adjustment
+  - `upload.py`: Image upload validation and processing
+  - `scraper.py`: URL-based image scraping
+- `tasks.py`: Celery tasks (`process_image_conversion_task`)
+- `consumers.py`: WebSocket consumer for real-time progress notifications
+- `routing.py`: WebSocket URL patterns (`ws/conversion/<conversion_id>/`)
+- Management commands: Image cleanup, conversion status management
 
----
+**api/** - REST API layer
+- Views organized by domain (in `api/views/`):
+  - `auth.py`: Login/logout, CSRF token, user info
+  - `upload.py`: Image upload, validation, deletion
+  - `scrape.py`: URL-based image scraping
+  - `convert.py`: Start conversion, check status, cancel
+  - `prompts.py`: List presets, get categories
+  - `favorites.py`: Add/remove/list favorite prompts
+  - `gallery.py`: List conversions, image details, download, brightness adjustment, deletion
+  - `usage.py`: Usage summary and history
+  - `health.py`: Health/readiness/liveness checks
+- All endpoints prefixed with `/api/v1/`
+- Standard response format: `{"status": "success|error", "message": "...", "data": {...}}`
 
-以上の指示に従い、確実で質の高い実装を行います。指示された範囲内でのみ処理を行い、不要な追加実装は行いません。不明点や重要な判断が必要な場合は、必ず確認を取ります。
+### Key Architectural Patterns
+
+**Image Conversion Flow:**
+1. User uploads images via `/api/v1/upload/` → stored temporarily
+2. User starts conversion via `/api/v1/convert/` → creates `ImageConversion` record
+3. Celery task `process_image_conversion_task` executes asynchronously
+4. Task calls `GeminiImageAPIService.generate_images_from_reference()`
+5. Progress notifications sent via WebSocket (`ws/conversion/<id>/`)
+6. Generated images saved as `GeneratedImage` records
+7. User's `monthly_usage` incremented (respects `monthly_limit`)
+
+**WebSocket Real-time Updates:**
+- Client connects to `ws/conversion/<conversion_id>/`
+- `ImageConversionConsumer` (Channels consumer) handles connection
+- Celery task sends updates via `channel_layer.group_send()`
+- Updates include: status changes, progress percentage, completion events
+
+**Usage Tracking:**
+- `UserProfile.monthly_usage` tracks generated image count
+- `UserProfile.monthly_limit` defines maximum per month
+- Celery Beat runs `reset_monthly_usage` command monthly
+- Model multipliers in `images/tasks.py`: different models have different usage costs
+
+**Gemini API Integration:**
+- Uses Vertex AI SDK with service account credentials
+- Project/location configured via environment variables
+- Image generation with reference image + text prompt
+- Automatic retry logic and error handling in `GeminiImageAPIService`
+
+## Code Conventions
+
+**IMPORTANT: Do not make unauthorized changes**
+- Request approval for UI/UX changes (layout, colors, fonts, spacing)
+- Request approval for tech stack version changes
+- Only implement explicitly requested features
+
+**Coding Style:**
+- Japanese docstrings and comments for business logic
+- Type hints in service layer (`images/services/*.py`)
+- Standard Django signatures in views (no excessive type hints)
+- Logger per module: `logger = logging.getLogger(__name__)`
+- Model `Meta` with explicit `db_table`, `indexes`, `ordering`
+- API responses use consistent JSON structure
+
+**Django Models:**
+- Business logic in model methods (e.g., `mark_as_processing()`, `mark_as_completed()`)
+- Computed properties for derived values (e.g., `is_expired`, `remaining`)
+- Use `@transaction.atomic` for multi-step operations
+- Cache invalidation patterns (e.g., `UserProfile.invalidate_usage_cache()`)
+
+**Service Layer:**
+- Stateless service classes with dependency injection
+- Explicit error classes (e.g., `GeminiImageAPIError`)
+- Comprehensive logging (INFO for operations, ERROR for failures)
+- Return typed results (use `Optional`, `List`, `Dict` type hints)
+
+## Important Files
+
+- `images/fixtures/prompt_presets.json`: Initial prompt presets (load with `loaddata`)
+- `.env.example`: Environment variable template
+- `docker-entrypoint.sh`: Docker initialization script
+- `gunicorn.conf.py`: Production WSGI server config
+- `docs/`: Requirements, API design, database design, implementation plans
+
+## Environment Variables
+
+Required environment variables (see `.env.example`):
+- `GOOGLE_APPLICATION_CREDENTIALS`: Path to GCP service account JSON
+- `GOOGLE_CLOUD_PROJECT`: GCP project ID
+- `GOOGLE_CLOUD_LOCATION`: Vertex AI location (typically "global")
+- `DATABASE_*`: PostgreSQL connection (if using PostgreSQL)
+- `REDIS_URL`: Redis connection URL
+- `SECRET_KEY`: Django secret key
+- `DEBUG`: Debug mode (False in production)
+- `ALLOWED_HOSTS`: Comma-separated allowed hosts
+- `CSRF_TRUSTED_ORIGINS`: Comma-separated trusted origins
+
+## Testing Strategy
+
+- Unit tests in each app's `tests.py`
+- Integration tests for API endpoints
+- Smoke tests for Gemini API connection
+- Use Django's test client for API testing
+- Mock Gemini API calls in unit tests to avoid costs
+
+## Common Pitfalls
+
+1. **Celery tasks not executing**: Ensure Redis is running and `celery worker` is started
+2. **WebSocket connection fails**: Check ASGI server (daphne) is running, not WSGI (gunicorn)
+3. **Gemini API errors**: Verify service account credentials and quota limits
+4. **Monthly usage not resetting**: Ensure `celery beat` is running with DatabaseScheduler
+5. **File upload issues**: Check `MEDIA_ROOT` permissions and `FILE_UPLOAD_MAX_MEMORY_SIZE`
+
+## Debugging
+
+- Django logs: `logs/django.log`
+- Celery logs: Check celery worker console output
+- WebSocket issues: Check browser console and `channels` logs
+- Database queries: Enable Django debug toolbar or use `django-extensions` shell_plus
+- Gemini API: Use `test_gemini_connection.py` to verify connectivity

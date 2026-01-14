@@ -37,6 +37,7 @@ urlpatterns = [
     # プロンプトプリセットAPI
     path('v1/prompts/', prompts.prompts_list, name='prompts_list'),
     path('v1/prompts/categories/', prompts.prompts_categories, name='prompts_categories'),
+    path('v1/prompts/improve/', prompts.improve_prompt, name='improve_prompt'),
 
     # お気に入りプロンプトAPI
     path('v1/prompts/favorites/', favorites.favorites_list, name='favorites_list'),

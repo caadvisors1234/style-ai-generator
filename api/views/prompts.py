@@ -5,12 +5,16 @@
 """
 
 import logging
+import json
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
+from django.conf import settings
 
+from api.decorators import login_required_api
 from images.models import PromptPreset
+from images.services.prompt_improver import PromptImproverService, PromptImproverError
 
 
 logger = logging.getLogger(__name__)
@@ -193,4 +197,107 @@ def prompts_categories(request):
         return JsonResponse({
             'status': 'error',
             'message': 'カテゴリ一覧の取得中にエラーが発生しました'
+        }, status=500)
+
+
+@require_http_methods(["POST"])
+@login_required_api
+def improve_prompt(request):
+    """
+    プロンプト改善API（認証必須）
+
+    POST /api/v1/prompts/improve/
+
+    Request Body:
+        {
+            "prompt": "string (required)"
+        }
+
+    Response:
+        {
+            "status": "success",
+            "original_prompt": "string",
+            "improved_prompt": "string"
+        }
+
+    Error Response:
+        {
+            "status": "error",
+            "message": "string",
+            "code": "string (optional)"
+        }
+
+    セキュリティ:
+        - 認証必須（ログインユーザーのみ利用可能）
+        - CSRF保護
+        - プロンプト最大長: 3000文字
+    """
+    try:
+        # リクエストボディの解析
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': '無効なJSONフォーマットです',
+                'code': 'INVALID_JSON'
+            }, status=400)
+
+        # プロンプトの取得
+        user_prompt = data.get('prompt', '').strip()
+
+        if not user_prompt:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'プロンプトを入力してください',
+                'code': 'MISSING_PROMPT'
+            }, status=400)
+
+        # プロンプトの長さ制限（DoS対策）
+        if len(user_prompt) > 3000:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'プロンプトは3000文字以内で入力してください',
+                'code': 'PROMPT_TOO_LONG'
+            }, status=400)
+
+        # APIキーの取得
+        api_key = getattr(settings, 'GEMINI_API_KEY', None)
+        if not api_key:
+            logger.error("GEMINI_API_KEY is not configured")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'API設定が不正です。管理者に連絡してください。',
+                'code': 'API_NOT_CONFIGURED'
+            }, status=500)
+
+        # プロンプト改善サービスの初期化と実行
+        service = PromptImproverService(api_key=api_key)
+        improved_prompt = service.improve_prompt(user_prompt)
+
+        logger.info(
+            f"Successfully improved prompt for user {request.user.id}. "
+            f"Original length: {len(user_prompt)}, Improved length: {len(improved_prompt)}"
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'original_prompt': user_prompt,
+            'improved_prompt': improved_prompt
+        })
+
+    except PromptImproverError as e:
+        logger.error(f"Prompt improvement error for user {request.user.id}: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e),
+            'code': 'IMPROVEMENT_FAILED'
+        }, status=400)
+
+    except Exception as e:
+        logger.error(f"Unexpected error in improve_prompt for user {request.user.id}: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'プロンプトの改善中にエラーが発生しました',
+            'code': 'INTERNAL_ERROR'
         }, status=500)
