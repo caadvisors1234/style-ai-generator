@@ -32,6 +32,27 @@
     estimatedEl.textContent = `この条件で合計 ${total} クレジット`;
   }
 
+  function updateStartButtonState() {
+    if (!startButton) return;
+
+    const files = getUploadCount();
+    const promptMeta = window.PromptManager && window.PromptManager.getSelectionMeta
+      ? window.PromptManager.getSelectionMeta()
+      : { prompt: window.PromptManager ? window.PromptManager.getPrompt() : '' };
+    const hasPrompt = !!(promptMeta.prompt && promptMeta.prompt.trim());
+
+    const isValid = files > 0 && hasPrompt;
+    startButton.disabled = !isValid;
+
+    if (!files) {
+      startButton.title = '画像をアップロードしてください';
+    } else if (!hasPrompt) {
+      startButton.title = 'プロンプトを入力または選択してください';
+    } else {
+      startButton.title = '';
+    }
+  }
+
   async function ensureFileData(file, index) {
     if (file.originalFile) {
       return file.originalFile;
@@ -146,6 +167,8 @@
   document.addEventListener('DOMContentLoaded', () => {
     if (startButton) {
       startButton.addEventListener('click', startConversion);
+      // 初期状態チェック
+      updateStartButtonState();
     }
     if (generationSelect) {
       generationSelect.addEventListener('change', updateEstimatedCredit);
@@ -155,8 +178,22 @@
         radio.addEventListener('change', updateEstimatedCredit);
       });
     }
-    window.addEventListener('uploadsChanged', updateEstimatedCredit);
-    window.addEventListener('imageDeleted', updateEstimatedCredit);
+    window.addEventListener('uploadsChanged', () => {
+      updateEstimatedCredit();
+      updateStartButtonState();
+    });
+    window.addEventListener('imageDeleted', () => {
+      updateEstimatedCredit();
+      updateStartButtonState();
+    });
+    window.addEventListener('promptChanged', updateStartButtonState);
+
     updateEstimatedCredit();
+    // PromptManagerの準備ができたら初期状態を更新するために少し待つか、
+    // PromptManager側で初期化完了イベントがあればそれを使うのがベストだが、
+    // 簡易的にDOMContentLoadedの最後に一度呼ぶ
+    setTimeout(updateStartButtonState, 100);
+
+
   });
 })();

@@ -160,6 +160,12 @@
       dropZone.addEventListener('dragover', handleDragOver);
       dropZone.addEventListener('dragleave', handleDragLeave);
       dropZone.addEventListener('drop', handleDrop);
+      dropZone.addEventListener('click', (event) => {
+        // ボタン自体のクリックイベントと重複しないようにする
+        if (event.target !== fileButton && !fileButton.contains(event.target)) {
+          fileInput.click();
+        }
+      });
     }
 
     if (fileButton && fileInput) {
