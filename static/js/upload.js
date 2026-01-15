@@ -10,6 +10,7 @@
   const fetchHPBSpinner = fetchHPBButton ? fetchHPBButton.querySelector('.spinner-border') : null;
   const fetchHPBButtonText = fetchHPBButton ? fetchHPBButton.querySelector('.button-text') : null;
   const startButton = document.getElementById('start-conversion');
+  const generatedSourceKey = 'generatedSourceImage';
 
   const state = {
     uploads: [],
@@ -240,9 +241,40 @@
     }
   }
 
+  async function addGeneratedImageFromSession() {
+    if (typeof sessionStorage === 'undefined') return;
+    const raw = sessionStorage.getItem(generatedSourceKey);
+    if (!raw) return;
+    sessionStorage.removeItem(generatedSourceKey);
+
+    let payload = null;
+    try {
+      payload = JSON.parse(raw);
+    } catch (error) {
+      return;
+    }
+
+    const imageUrl = payload?.url;
+    if (!imageUrl) return;
+
+    try {
+      const response = await fetch(imageUrl, { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error('fetch-failed');
+      }
+      const blob = await response.blob();
+      const name = payload?.fileName || 'generated-image.jpg';
+      const file = new File([blob], name, { type: blob.type || 'image/jpeg' });
+      await uploadFiles([file]);
+    } catch (error) {
+      notifyError('生成画像の取得に失敗しました');
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     registerEvents();
     updateStartButton();
+    addGeneratedImageFromSession();
     window.UploadManager = {
       getFiles: () => state.uploads.slice(),
       clear: () => {

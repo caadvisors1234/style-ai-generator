@@ -14,12 +14,25 @@
   const brightnessApply = document.getElementById('brightness-apply');
   const downloadLink = document.getElementById('detail-download');
   const deleteButton = document.getElementById('detail-delete');
+  const useAsSourceButton = document.getElementById('detail-use-as-source');
 
   const state = {
     conversionId: null,
     imageId: null,
+    imageUrl: null,
+    imageFileName: null,
     savedBrightness: 0,
   };
+
+  function extractFileName(url, fallback) {
+    try {
+      const path = new URL(url, window.location.origin).pathname;
+      const name = path.split('/').pop();
+      return name || fallback;
+    } catch (error) {
+      return fallback;
+    }
+  }
 
   function updatePreview() {
     const adjustment = Number(brightnessRange.value || 0);
@@ -44,6 +57,8 @@
     createdAtEl.textContent = new Date(image.created_at).toLocaleString('ja-JP');
     modelEl.textContent = image.conversion.model_name || '—';
     promptEl.textContent = image.conversion.prompt || '（設定なし）';
+    state.imageUrl = image.image_url;
+    state.imageFileName = extractFileName(image.image_url, `generated_${image.id}.jpg`);
     state.savedBrightness = image.brightness_adjustment ?? 0;
     brightnessRange.value = state.savedBrightness;
     generatedImg.style.filter = 'brightness(1)';
@@ -60,6 +75,8 @@
       const imageUrl = image.image_url;
       const separator = imageUrl.includes('?') ? '&' : '?';
       generatedImg.src = `${imageUrl}${separator}t=${Date.now()}`;
+      state.imageUrl = image.image_url;
+      state.imageFileName = extractFileName(image.image_url, `generated_${image.id}.jpg`);
       state.savedBrightness = image.brightness_adjustment ?? 0;
       brightnessRange.value = String(state.savedBrightness);
       generatedImg.style.filter = 'brightness(1)';
@@ -92,6 +109,20 @@
     }
   }
 
+  function useAsSource() {
+    if (!state.imageUrl) return;
+    try {
+      const payload = {
+        url: state.imageUrl,
+        fileName: state.imageFileName || `generated_${state.imageId || 'image'}.jpg`,
+      };
+      sessionStorage.setItem('generatedSourceImage', JSON.stringify(payload));
+      window.location.href = '/';
+    } catch (error) {
+      notifyError('元画像として設定できませんでした');
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     brightnessRange.addEventListener('input', () => {
       updatePreview();
@@ -104,6 +135,9 @@
     });
     brightnessApply.addEventListener('click', applyBrightness);
     deleteButton.addEventListener('click', deleteImage);
+    if (useAsSourceButton) {
+      useAsSourceButton.addEventListener('click', useAsSource);
+    }
   });
 
   window.ImageDetail = {
