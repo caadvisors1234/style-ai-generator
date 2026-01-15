@@ -471,6 +471,55 @@ a:hover {
     font-size: var(--font-size-medium);
 }
 
+.detail-modal-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+}
+
+.detail-modal-footer .detail-footer-primary {
+    display: flex;
+}
+
+.detail-modal-footer .detail-footer-primary .detail-action {
+    width: 100%;
+}
+
+.detail-modal-footer .detail-primary-action {
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--accent-color);
+}
+
+.detail-modal-footer .detail-footer-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.detail-modal-footer .detail-footer-actions .detail-action {
+    width: auto;
+}
+
+.detail-modal-footer .detail-icon-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.detail-modal-footer .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+}
+
+
 /* ================================================
    Form Styles - フォーム要素
    ================================================ */

@@ -53,6 +53,11 @@
       fetchUsage();
     }
 
+    const tooltipTriggers = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltipTriggers.forEach((trigger) => {
+      new bootstrap.Tooltip(trigger);
+    });
+
     // Bottom Sheet Logic for Mobile
     const settingsBtn = document.getElementById('mobile-settings-btn');
     const sheetContainer = document.getElementById('generation-options-container');

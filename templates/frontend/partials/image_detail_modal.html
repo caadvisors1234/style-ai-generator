@@ -34,11 +34,32 @@
                     <dd class="col-sm-9" id="detail-prompt">-</dd>
                 </dl>
             </div>
-            <div class="modal-footer justify-content-between">
-                <button class="btn btn-outline-danger" type="button" id="detail-delete">削除</button>
-                <div>
-                    <a class="btn btn-outline-secondary" id="detail-download" href="#" target="_blank" rel="noopener">ダウンロード</a>
-                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">閉じる</button>
+            <div class="modal-footer detail-modal-footer">
+                <div class="detail-footer-primary">
+                    <button class="btn btn-outline-primary detail-action detail-primary-action" type="button" id="detail-use-as-source">この画像を変換する</button>
+                </div>
+                <div class="detail-footer-actions">
+                    <button class="btn btn-outline-danger detail-action" type="button" id="detail-delete">削除</button>
+                    <div class="detail-icon-actions">
+                        <a class="btn btn-outline-secondary btn-icon" id="detail-download" href="#" target="_blank"
+                            rel="noopener" data-bs-toggle="tooltip" data-bs-title="ダウンロード" aria-label="ダウンロード">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                class="bi bi-download" viewBox="0 0 16 16" aria-hidden="true">
+                                <path
+                                    d="M.5 9.9a.5.5 0 0 1 .5.5v2.6A1.5 1.5 0 0 0 2.5 14h11A1.5 1.5 0 0 0 15 13V10.4a.5.5 0 0 1 1 0V13a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 13V10.4a.5.5 0 0 1 .5-.5" />
+                                <path
+                                    d="M7.646 10.854a.5.5 0 0 0 .708 0l3.5-3.5a.5.5 0 0 0-.708-.708L8.5 9.293V1.5a.5.5 0 0 0-1 0v7.793L4.854 6.646a.5.5 0 1 0-.708.708z" />
+                            </svg>
+                        </a>
+                        <button class="btn btn-secondary btn-icon" type="button" data-bs-dismiss="modal"
+                            data-bs-toggle="tooltip" data-bs-title="閉じる" aria-label="閉じる">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                class="bi bi-x-lg" viewBox="0 0 16 16" aria-hidden="true">
+                                <path
+                                    d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
