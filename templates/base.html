@@ -42,9 +42,27 @@
                         </div>
                         <div class="usage-remaining text-muted small" id="usage-remaining-label">残り - クレジット</div>
                     </div>
-                    <button class="btn btn-outline-secondary btn-sm" id="logout-button" type="button">
-                        ログアウト
-                    </button>
+
+                    <div class="dropdown">
+                        <a href="#"
+                            class="d-flex align-items-center text-decoration-none dropdown-toggle user-avatar-link"
+                            id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="user-avatar">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                                    class="bi bi-person-fill" viewBox="0 0 16 16">
+                                    <path
+                                        d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3Zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                                </svg>
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow" aria-labelledby="userDropdown">
+                            <li>
+                                <h6 class="dropdown-header">アカウント</h6>
+                            </li>
+                            <li><button class="dropdown-item text-danger" id="logout-button"
+                                    type="button">ログアウト</button></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>

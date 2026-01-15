@@ -52,5 +52,35 @@
       logoutButton.addEventListener('click', logout);
       fetchUsage();
     }
+
+    // Bottom Sheet Logic for Mobile
+    const settingsBtn = document.getElementById('mobile-settings-btn');
+    const sheetContainer = document.getElementById('generation-options-container');
+    const sheetOverlay = document.getElementById('sheet-overlay');
+
+    if (settingsBtn && sheetContainer && sheetOverlay) {
+      const openSheet = () => {
+        sheetContainer.classList.add('show');
+        sheetOverlay.classList.add('show');
+
+        // Also ensure the accordion inside is expanded on mobile if it was collapsed
+        const collapse = sheetContainer.querySelector('.collapse');
+        const bsCollapse = bootstrap.Collapse.getInstance(collapse) || new bootstrap.Collapse(collapse, { toggle: false });
+        // On mobile sheet, we usually want it open. 
+        // But the accordion button is also there.
+        // Let's force proper display. 
+        if (!collapse.classList.contains('show')) {
+          bsCollapse.show();
+        }
+      };
+
+      const closeSheet = () => {
+        sheetContainer.classList.remove('show');
+        sheetOverlay.classList.remove('show');
+      };
+
+      settingsBtn.addEventListener('click', openSheet);
+      sheetOverlay.addEventListener('click', closeSheet);
+    }
   });
 })();

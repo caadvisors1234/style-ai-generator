@@ -274,17 +274,22 @@ a:hover {
     transition: var(--transition-base);
     text-align: center;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
 }
 
 .drop-zone:hover {
     border-color: var(--accent-color);
     background-color: var(--bg-primary);
+    transform: scale(1.005);
 }
 
 .drop-zone.drag-over {
     background-color: var(--bg-tertiary);
     border-color: var(--accent-color);
     border-style: solid;
+    transform: scale(1.02);
+    box-shadow: 0 0 0 4px rgba(222, 103, 135, 0.1);
 }
 
 /* ================================================
@@ -895,6 +900,33 @@ textarea.form-control {
     h2.h4 {
         font-size: 1.25rem;
     }
+}
+
+
+
+/* User Avatar */
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    background-color: var(--bg-tertiary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: var(--transition-base);
+    border: 1px solid var(--border-color);
+}
+
+.user-avatar:hover {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.user-avatar-link::after {
+    display: none;
+    /* Hide default dropdown arrow */
 }
 
 /* ================================================

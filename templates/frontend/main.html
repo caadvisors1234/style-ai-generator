@@ -172,68 +172,82 @@
         </div>
     </div>
     <!-- Configuration Options (Accordion) -->
-    <div class="accordion mb-3 shadow-sm rounded" id="settingsAccordion">
-        <div class="accordion-item border-0">
-            <h2 class="accordion-header" id="headingSettings">
-                <button class="accordion-button collapsed fw-medium" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#collapseSettings" aria-expanded="false" aria-controls="collapseSettings">
-                    生成オプション（枚数・モデル・比率）
-                </button>
-            </h2>
-            <div id="collapseSettings" class="accordion-collapse collapse" aria-labelledby="headingSettings"
-                data-bs-parent="#settingsAccordion">
-                <div class="accordion-body bg-white">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label for="generation-count" class="form-label">生成枚数（画像数）</label>
-                            <select id="generation-count" class="form-select">
-                                <option value="1" selected>1枚</option>
-                                <option value="2">2枚</option>
-                                <option value="3">3枚</option>
-                                <option value="4">4枚</option>
-                                <option value="5">5枚</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <span class="form-label d-block mb-2">モデル選択（クレジット）</span>
-                            <div class="row g-2" id="model-variant-group">
-                                <div class="col-12">
-                                    <label class="model-option w-100">
-                                        <input type="radio" name="model_variant" value="gemini-2.5-flash-image"
-                                            class="form-check-input" checked>
-                                        <div class="model-option-body">
-                                            <div class="fw-semibold">Gemini 2.5 Flash Image</div>
-                                            <div class="text-muted small">速い・低コスト / 日常利用向け（1クレジット/画像）</div>
-                                        </div>
-                                    </label>
-                                </div>
-                                <div class="col-12">
-                                    <label class="model-option w-100">
-                                        <input type="radio" name="model_variant" value="gemini-3-pro-image-preview"
-                                            class="form-check-input">
-                                        <div class="model-option-body">
-                                            <div class="fw-semibold">Gemini 3 Pro Image Preview</div>
-                                            <div class="text-muted small">高品質・高コスト / 厳選出力向け（5クレジット/画像）</div>
-                                        </div>
-                                    </label>
+    <div class="sheet-overlay" id="sheet-overlay"></div>
+
+    <button class="btn btn-light d-md-none shadow position-fixed" id="mobile-settings-btn" type="button"
+        style="bottom: 1.5rem; left: 1.5rem; z-index: 1050; border-radius: 50px; padding: 1rem 1.5rem; border: 1px solid var(--border-color);">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-sliders"
+            viewBox="0 0 16 16">
+            <path fill-rule="evenodd"
+                d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.05 3a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0V3h9.05zM4.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM2.05 8a2.5 2.5 0 0 1 4.9 0H16v1H6.95a2.5 2.5 0 0 1-4.9 0H0V8h2.05zm9.45 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.05 13a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0v-1h9.05z" />
+        </svg>
+        設定
+    </button>
+
+    <div id="generation-options-container">
+        <div class="accordion mb-3 shadow-sm rounded" id="settingsAccordion">
+            <div class="accordion-item border-0">
+                <h2 class="accordion-header" id="headingSettings">
+                    <button class="accordion-button collapsed fw-medium" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapseSettings" aria-expanded="false" aria-controls="collapseSettings">
+                        生成オプション（枚数・モデル・比率）
+                    </button>
+                </h2>
+                <div id="collapseSettings" class="accordion-collapse collapse" aria-labelledby="headingSettings"
+                    data-bs-parent="#settingsAccordion">
+                    <div class="accordion-body bg-white">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="generation-count" class="form-label">生成枚数（画像数）</label>
+                                <select id="generation-count" class="form-select">
+                                    <option value="1" selected>1枚</option>
+                                    <option value="2">2枚</option>
+                                    <option value="3">3枚</option>
+                                    <option value="4">4枚</option>
+                                    <option value="5">5枚</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="form-label d-block mb-2">モデル選択（クレジット）</span>
+                                <div class="row g-2" id="model-variant-group">
+                                    <div class="col-12">
+                                        <label class="model-option w-100">
+                                            <input type="radio" name="model_variant" value="gemini-2.5-flash-image"
+                                                class="form-check-input" checked>
+                                            <div class="model-option-body">
+                                                <div class="fw-semibold">Gemini 2.5 Flash Image</div>
+                                                <div class="text-muted small">速い・低コスト / 日常利用向け（1クレジット/画像）</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="model-option w-100">
+                                            <input type="radio" name="model_variant" value="gemini-3-pro-image-preview"
+                                                class="form-check-input">
+                                            <div class="model-option-body">
+                                                <div class="fw-semibold">Gemini 3 Pro Image Preview</div>
+                                                <div class="text-muted small">高品質・高コスト / 厳選出力向け（5クレジット/画像）</div>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="aspect-ratio" class="form-label">画像比率</label>
-                            <select id="aspect-ratio" class="form-select">
-                                <option value="original" selected>そのまま（元画像を維持）</option>
-                                <option value="1:1">1:1（スクエア）</option>
-                                <option value="3:4">3:4（ポートレート）</option>
-                                <option value="4:3">4:3（標準）</option>
-                                <option value="9:16">9:16（縦長）</option>
-                                <option value="16:9">16:9（ワイド）</option>
-                                <option value="3:2">3:2</option>
-                                <option value="2:3">2:3</option>
-                                <option value="21:9">21:9（シネマ）</option>
-                                <option value="9:21">9:21</option>
-                                <option value="4:5">4:5</option>
-                            </select>
+                            <div class="col-md-4">
+                                <label for="aspect-ratio" class="form-label">画像比率</label>
+                                <select id="aspect-ratio" class="form-select">
+                                    <option value="original" selected>そのまま（元画像を維持）</option>
+                                    <option value="1:1">1:1（スクエア）</option>
+                                    <option value="3:4">3:4（ポートレート）</option>
+                                    <option value="4:3">4:3（標準）</option>
+                                    <option value="9:16">9:16（縦長）</option>
+                                    <option value="16:9">16:9（ワイド）</option>
+                                    <option value="3:2">3:2</option>
+                                    <option value="2:3">2:3</option>
+                                    <option value="21:9">21:9（シネマ）</option>
+                                    <option value="9:21">9:21</option>
+                                    <option value="4:5">4:5</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>

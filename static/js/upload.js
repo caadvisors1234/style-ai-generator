@@ -54,10 +54,27 @@
 
     state.uploads.forEach((item, idx) => {
       const clone = template.content.cloneNode(true);
-      clone.querySelector('.uploaded-thumb').src = item.preview_url;
+      const img = clone.querySelector('.uploaded-thumb');
+      img.src = item.preview_url;
+
       clone.querySelector('.uploaded-name').textContent = item.file_name;
       clone.querySelector('.uploaded-size').textContent = humanFileSize(item.file_size);
-      clone.querySelector('.remove-upload').dataset.index = idx;
+
+      const removeBtn = clone.querySelector('.remove-upload');
+      removeBtn.dataset.index = idx;
+
+      // Loading state
+      if (item.isUploading) {
+        const cardBody = clone.querySelector('.card-body');
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner-border text-primary spinner-border-sm ms-2';
+        spinner.setAttribute('role', 'status');
+        clone.querySelector('.card-title').appendChild(spinner);
+
+        img.style.opacity = '0.5';
+        removeBtn.disabled = true;
+      }
+
       uploadedList.appendChild(clone);
     });
 
@@ -72,18 +89,51 @@
     const formData = new FormData();
     fileArray.forEach((file) => formData.append('images', file));
 
+    // Create temporary entries for instant preview
+    const tempUploads = fileArray.map((file) => ({
+      file_name: file.name,
+      file_size: file.size,
+      preview_url: URL.createObjectURL(file),
+      originalFile: file,
+      isUploading: true, // Flag to show loading state
+    }));
+
+    // Add to state immediately
+    const startIdx = state.uploads.length;
+    state.uploads.push(...tempUploads);
+    renderUploads();
+
     try {
       clearError();
       const response = await APIClient.upload('/api/v1/upload/', formData);
-      response.uploaded_files.forEach((info, index) => {
-        state.uploads.push({
-          ...info,
-          originalFile: fileArray[index] || null,
-        });
+
+      // Update the temporary entries with real data
+      response.uploaded_files.forEach((info, i) => {
+        const targetIdx = startIdx + i;
+        if (state.uploads[targetIdx]) {
+          state.uploads[targetIdx] = {
+            ...info,
+            originalFile: fileArray[i] || null,
+            isUploading: false,
+            // Keep the local preview URL until we are sure? 
+            // Actually server returns preview_url, but local blob is faster.
+            // Let's use server URL to ensure consistency, need to revoke blob later?
+            // For now, let's keep it simple and just replace.
+          };
+          // Revoke temporary blob to free memory (optional but good practice)
+          if (tempUploads[i] && tempUploads[i].preview_url) {
+            URL.revokeObjectURL(tempUploads[i].preview_url);
+          }
+        }
       });
+
       renderUploads();
       notifySuccess(`${response.count}件の画像をアップロードしました`);
     } catch (error) {
+      // Remove temporary uploads on failure
+      state.uploads.splice(startIdx, tempUploads.length);
+      renderUploads();
+
       const payload = error.payload || {};
       showError(payload.message || 'アップロードに失敗しました');
       if (payload.errors) {
